@@ -1,0 +1,1 @@
+"""Database migrations for catalog application."""

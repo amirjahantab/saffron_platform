@@ -1,0 +1,1 @@
+"""Test suite for core infrastructure and currency contract."""

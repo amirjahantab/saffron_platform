@@ -1,0 +1,1 @@
+"""Core infrastructure application providing shared models, currency utilities, and health checks."""

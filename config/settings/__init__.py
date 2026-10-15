@@ -1,0 +1,1 @@
+"""Settings package providing environment-isolated configuration modules."""
