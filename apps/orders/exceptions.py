@@ -1,4 +1,4 @@
-"""Domain exceptions for shopping cart, inventory, and order operations."""
+"""Domain exceptions for shopping cart, inventory reservation, and order operations."""
 from apps.core.exceptions import SaffronBaseError
 
 
@@ -28,3 +28,31 @@ class CartQuantityBoundsError(CartError):
     """Raised when requested quantity violates min_order_quantity or max_order_quantity."""
 
     default_code = "invalid_quantity_bounds"
+
+
+class OrderError(SaffronBaseError):
+    """Base exception for order lifecycle and reservation operations."""
+
+    default_code = "order_error"
+
+    def __init__(self, message: str, code: str | None = None) -> None:
+        super().__init__(message)
+        self.code = code or self.default_code
+
+
+class InvalidOrderStateTransitionError(OrderError):
+    """Raised when an illegal order status transition is attempted."""
+
+    default_code = "invalid_state_transition"
+
+
+class StockReservationError(OrderError):
+    """Raised when stock reservation creation, commitment, or release fails."""
+
+    default_code = "stock_reservation_error"
+
+
+class OrderAccessDeniedError(OrderError):
+    """Raised when a user attempts to access an order belonging to another user."""
+
+    default_code = "order_access_denied"

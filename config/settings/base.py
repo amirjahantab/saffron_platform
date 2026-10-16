@@ -182,6 +182,17 @@ SMS_PROVIDER_CLASS = get_env_variable(
 )
 OTP_SANDBOX_STORE_OUTBOX = False
 
+# Order & Inventory Reservation Settings (Phase 4)
+ORDER_RESERVATION_EXPIRY_MINUTES = int(
+    get_env_variable("ORDER_RESERVATION_EXPIRY_MINUTES", default="15")
+)
+ORDER_DEFAULT_SHIPPING_COST_RIAL = int(
+    get_env_variable("ORDER_DEFAULT_SHIPPING_COST_RIAL", default="450000")
+)
+ORDER_FREE_SHIPPING_THRESHOLD_RIAL = int(
+    get_env_variable("ORDER_FREE_SHIPPING_THRESHOLD_RIAL", default="15000000")
+)
+
 # Structured Logging
 LOG_LEVEL = get_env_variable("DJANGO_LOG_LEVEL", default="INFO").upper()
 
