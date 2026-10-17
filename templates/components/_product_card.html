@@ -1,0 +1,118 @@
+{% load saffron_tags %}
+<article class="bg-white rounded-2xl border border-stone-200 shadow-sm hover:shadow-md transition-all flex flex-col overflow-hidden group">
+  <!-- Product Image & Badges -->
+  <a href="{% url 'storefront:product_detail' slug=card.product.slug %}" class="relative block aspect-[4/3] bg-stone-100 overflow-hidden">
+    {% if card.primary_image and card.primary_image.image %}
+      <img
+        src="{{ card.primary_image.image.url }}"
+        alt="{{ card.primary_image.alt_text }}"
+        loading="lazy"
+        class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+      >
+    {% else %}
+      <div class="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-rose-50 to-amber-50 text-rose-900 p-4 text-center">
+        <span class="text-2xl font-extrabold mb-1">{{ card.product.get_saffron_grade_display }}</span>
+        <span class="text-xs text-stone-500">{{ card.product.origin_summary }}</span>
+      </div>
+    {% endif %}
+
+    <!-- Grade Badge -->
+    <span class="absolute top-3 right-3 px-2.5 py-1 rounded-lg bg-stone-900/85 text-amber-300 text-xs font-bold backdrop-blur-sm">
+      {{ card.product.get_saffron_grade_display }}
+    </span>
+
+    <!-- Discount Badge (Strictly from real DB variant) -->
+    {% if card.default_variant and card.default_variant.has_discount %}
+      <span class="absolute top-3 left-3 px-2.5 py-1 rounded-lg bg-rose-700 text-white text-xs font-extrabold">
+        {{ card.default_variant.discount_percentage|persian_digits }}٪ تخفیف
+      </span>
+    {% endif %}
+  </a>
+
+  <!-- Card Body -->
+  <div class="p-4 flex-grow flex flex-col justify-between gap-4">
+    <div>
+      <div class="flex items-center justify-between text-xs text-stone-500 mb-1.5">
+        <span>منطقه کشت: {{ card.product.origin_summary }}</span>
+        {% if card.default_variant %}
+          <span class="font-medium text-stone-700">{{ card.default_variant.weight_label }}</span>
+        {% endif %}
+      </div>
+
+      <h3 class="font-bold text-stone-900 text-base leading-snug group-hover:text-rose-800 transition-colors">
+        <a href="{% url 'storefront:product_detail' slug=card.product.slug %}">
+          {{ card.product.name }}
+        </a>
+      </h3>
+
+      <p class="text-xs text-stone-600 mt-1.5 line-clamp-2">
+        {{ card.product.short_description }}
+      </p>
+    </div>
+
+    <!-- Authoritative Pricing & Add-to-Cart Action -->
+    <div class="pt-3 border-t border-stone-100">
+      {% if card.default_variant %}
+        <div class="flex items-end justify-between gap-2 mb-3">
+          <div>
+            {% if card.default_variant.has_discount %}
+              <span class="block text-xs text-stone-400 line-through">
+                {{ card.default_variant.formatted_base_price_toman }}
+              </span>
+            {% endif %}
+            <span class="text-base font-extrabold text-rose-900">
+              {{ card.default_variant.formatted_effective_price_toman }}
+            </span>
+          </div>
+
+          {% if card.is_available %}
+            <span class="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+              موجود ({{ card.default_variant.stock_quantity|persian_digits }} عدد)
+            </span>
+          {% else %}
+            <span class="text-xs font-semibold text-stone-500 bg-stone-100 px-2 py-0.5 rounded-md">
+              ناموجود
+            </span>
+          {% endif %}
+        </div>
+
+        {% if card.is_available %}
+          <form
+            action="{% url 'storefront:cart_add' %}"
+            method="post"
+            data-api-url="{% url 'orders:cart_add_item' %}"
+            class="js-add-to-cart-form flex items-center gap-2"
+          >
+            {% csrf_token %}
+            <input type="hidden" name="variant_public_id" value="{{ card.default_variant.public_id }}">
+            <input type="hidden" name="quantity" value="{{ card.default_variant.min_order_quantity }}">
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <button
+              type="submit"
+              class="w-full py-2 px-3 rounded-xl bg-rose-900 hover:bg-rose-800 text-white text-xs font-bold transition-colors"
+            >
+              افزودن به سبد ({{ card.default_variant.weight_label }})
+            </button>
+            <a
+              href="{% url 'storefront:product_detail' slug=card.product.slug %}"
+              class="py-2 px-3 rounded-xl border border-stone-300 hover:border-stone-400 text-stone-700 text-xs font-semibold whitespace-nowrap"
+            >
+              جزئیات و آزمایشگاه
+            </a>
+          </form>
+        {% else %}
+          <a
+            href="{% url 'storefront:product_detail' slug=card.product.slug %}"
+            class="block w-full text-center py-2 px-3 rounded-xl bg-stone-100 text-stone-600 text-xs font-semibold"
+          >
+            مشاهده مشخصات (ناموجود)
+          </a>
+        {% endif %}
+      {% else %}
+        <div class="text-xs text-stone-500 py-2 text-center bg-stone-50 rounded-lg">
+          بدون گونه فعال قیمت‌گذاری‌شده
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</article>

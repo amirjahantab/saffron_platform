@@ -1,0 +1,1 @@
+"""Storefront UI application providing Persian RTL templates and shopping experience."""

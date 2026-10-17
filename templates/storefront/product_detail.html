@@ -1,0 +1,380 @@
+{% extends "base.html" %}
+{% load saffron_tags %}
+
+{% block content %}
+  <!-- Safe JSON Data for Interactive Variant & Lab Certificate Switching -->
+  {{ variants_client_data|json_script:"product-variants-data" }}
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <!-- Breadcrumb -->
+    <nav aria-label="مسیر راهنما" class="text-xs text-stone-500 mb-6">
+      <ol class="flex flex-wrap items-center gap-2">
+        <li><a href="{% url 'storefront:home' %}" class="hover:text-rose-800">صفحه اصلی</a></li>
+        <li>/</li>
+        <li><a href="{% url 'storefront:product_list' %}" class="hover:text-rose-800">کاتالوگ محصولات</a></li>
+        <li>/</li>
+        <li>
+          <a href="{% url 'storefront:product_list' %}?grade={{ product.saffron_grade }}" class="hover:text-rose-800">
+            زعفران {{ product.get_saffron_grade_display }}
+          </a>
+        </li>
+        <li>/</li>
+        <li class="text-stone-900 font-semibold">{{ product.name }}</li>
+      </ol>
+    </nav>
+
+    <!-- Main Product Showcase -->
+    <div class="bg-white rounded-3xl border border-stone-200 shadow-sm p-6 sm:p-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+      <!-- Right Column: Product Gallery -->
+      <div class="lg:col-span-5 space-y-4">
+        <div class="aspect-square rounded-2xl bg-stone-100 border border-stone-200 overflow-hidden flex items-center justify-center">
+          {% if primary_image and primary_image.image %}
+            <img
+              id="main-product-image"
+              src="{{ primary_image.image.url }}"
+              alt="{{ primary_image.alt_text }}"
+              class="w-full h-full object-cover"
+            >
+          {% else %}
+            <div class="p-8 text-center bg-gradient-to-br from-rose-50 to-amber-50 w-full h-full flex flex-col items-center justify-center">
+              <span class="text-3xl font-extrabold text-rose-900 mb-2">{{ product.get_saffron_grade_display }}</span>
+              <span class="text-sm text-stone-600">{{ product.name }}</span>
+            </div>
+          {% endif %}
+        </div>
+
+        {% if images|length > 1 %}
+          <div class="grid grid-cols-4 gap-3">
+            {% for img in images %}
+              {% if img.image %}
+                <button
+                  type="button"
+                  onclick="document.getElementById('main-product-image').src='{{ img.image.url }}'; document.getElementById('main-product-image').alt='{{ img.alt_text|escapejs }}';"
+                  class="aspect-square rounded-xl border border-stone-200 overflow-hidden hover:border-rose-800"
+                >
+                  <img src="{{ img.image.url }}" alt="{{ img.alt_text }}" class="w-full h-full object-cover">
+                </button>
+              {% endif %}
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- Left Column: Interactive Variant Selection, Pricing & Add-to-Cart -->
+      <div class="lg:col-span-7 flex flex-col justify-between space-y-6">
+        <div class="space-y-4">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="px-3 py-1 rounded-lg bg-rose-950 text-amber-300 text-xs font-bold">
+              زعفران {{ product.get_saffron_grade_display }}
+            </span>
+            <span class="px-3 py-1 rounded-lg bg-stone-100 text-stone-700 text-xs font-medium">
+              منطقه کشت: {{ product.origin_summary }}
+            </span>
+            {% if product.is_wholesale_available %}
+              <span class="px-3 py-1 rounded-lg bg-amber-50 text-amber-900 border border-amber-200 text-xs font-bold">
+                امکان سفارش عمده
+              </span>
+            {% endif %}
+          </div>
+
+          <h1 class="text-2xl sm:text-3xl font-extrabold text-stone-900">
+            {{ product.name }}
+          </h1>
+
+          <p class="text-sm text-stone-600 leading-relaxed">
+            {{ product.short_description }}
+          </p>
+
+          {% if selected_variant %}
+            <!-- SKU & Live Stock Status Badge -->
+            <div class="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-stone-100">
+              <div class="text-xs text-stone-500">
+                کد شناسایی کالا (SKU): <strong id="variant-sku" class="text-stone-800 font-mono">{{ selected_variant.sku }}</strong>
+              </div>
+              <div>
+                {% if selected_variant.is_in_stock %}
+                  <span id="variant-stock-badge" class="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
+                    موجود در انبار ({{ selected_variant.stock_quantity|persian_digits }} عدد)
+                  </span>
+                {% else %}
+                  <span id="variant-stock-badge" class="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-stone-100 text-stone-600 border border-stone-300">
+                    ناموجود در انبار
+                  </span>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Interactive Weight & Packaging Selector -->
+            <div class="space-y-2.5 pt-2">
+              <label class="block text-xs font-bold text-stone-800">
+                انتخاب وزن و نوع بسته‌بندی:
+              </label>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5" role="group" aria-label="گزینه‌های وزن و بسته‌بندی">
+                {% for v in variants %}
+                  <button
+                    type="button"
+                    data-variant-id="{{ v.public_id }}"
+                    aria-pressed="{% if v.public_id == selected_variant.public_id %}true{% else %}false{% endif %}"
+                    class="variant-option-btn text-right p-3 rounded-xl border border-stone-200 hover:border-rose-800 transition-all flex items-center justify-between gap-2"
+                  >
+                    <div>
+                      <span class="block text-xs font-extrabold text-stone-900">
+                        {{ v.weight_label }} — {{ v.packaging_type.name }}
+                      </span>
+                      <span class="block text-[11px] text-stone-500 mt-0.5">
+                        {{ v.get_sale_type_display }} | بچ: {{ v.harvest_batch.batch_code }}
+                      </span>
+                    </div>
+                    <div class="text-left">
+                      <span class="block text-xs font-bold text-rose-900">
+                        {{ v.formatted_effective_price_toman }}
+                      </span>
+                      {% if not v.is_in_stock %}
+                        <span class="text-[10px] text-stone-400">ناموجود</span>
+                      {% endif %}
+                    </div>
+                  </button>
+                {% endfor %}
+              </div>
+            </div>
+
+            <!-- Selected Variant Specifications Summary -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3.5 rounded-2xl bg-stone-50 border border-stone-200 text-xs">
+              <div>
+                <span class="text-stone-500 block">بسته‌بندی:</span>
+                <strong id="variant-packaging-name" class="text-stone-800">{{ selected_variant.packaging_type.name }}</strong>
+              </div>
+              <div>
+                <span class="text-stone-500 block">وزن خالص زعفران:</span>
+                <strong id="variant-net-weight" class="text-stone-800">{{ selected_variant.net_weight_grams|persian_digits }} گرم</strong>
+              </div>
+              <div>
+                <span class="text-stone-500 block">وزن با بسته‌بندی:</span>
+                <strong id="variant-gross-weight" class="text-stone-800">{{ selected_variant.gross_weight_grams|persian_digits }} گرم</strong>
+              </div>
+              <div>
+                <span class="text-stone-500 block">کانال عرضه:</span>
+                <strong id="variant-sale-type" class="text-stone-800">{{ selected_variant.get_sale_type_display }}</strong>
+              </div>
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Authoritative Pricing & Add-to-Cart Form -->
+        {% if selected_variant %}
+          <div class="pt-4 border-t border-stone-200 space-y-4">
+            <div class="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <span class="text-xs text-stone-500 block mb-1">قیمت مصرف‌کننده (با احتساب مالیات):</span>
+                <div
+                  id="variant-base-price-container"
+                  class="flex items-center gap-2 mb-1 {% if not selected_variant.has_discount %}hidden{% endif %}"
+                >
+                  <span id="variant-base-price" class="text-sm text-stone-400 line-through">
+                    {{ selected_variant.formatted_base_price_toman }}
+                  </span>
+                  <span id="variant-discount-badge" class="px-2 py-0.5 rounded-md bg-rose-700 text-white text-xs font-bold">
+                    {{ selected_variant.discount_percentage|persian_digits }}٪ تخفیف
+                  </span>
+                </div>
+                <div id="variant-effective-price" class="text-2xl sm:text-3xl font-extrabold text-rose-900">
+                  {{ selected_variant.formatted_effective_price_toman }}
+                </div>
+              </div>
+
+              <!-- Add to Cart Form -->
+              <form
+                action="{% url 'storefront:cart_add' %}"
+                method="post"
+                data-api-url="{% url 'orders:cart_add_item' %}"
+                class="js-add-to-cart-form flex flex-wrap items-center gap-3 w-full sm:w-auto"
+              >
+                {% csrf_token %}
+                <input type="hidden" id="selected-variant-input" name="variant_public_id" value="{{ selected_variant.public_id }}">
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+
+                <!-- Quantity Stepper -->
+                <div class="flex items-center border border-stone-300 rounded-xl bg-white overflow-hidden">
+                  <button
+                    type="button"
+                    id="qty-decrease-btn"
+                    class="px-3 py-2.5 text-stone-700 hover:bg-stone-100 font-bold"
+                    aria-label="کاهش تعداد"
+                  >−</button>
+                  <label for="quantity-input" class="sr-only">تعداد</label>
+                  <input
+                    type="number"
+                    id="quantity-input"
+                    name="quantity"
+                    value="{{ selected_variant.min_order_quantity }}"
+                    min="{{ selected_variant.min_order_quantity }}"
+                    max="{{ selected_variant.max_order_quantity }}"
+                    {% if not selected_variant.is_in_stock %}disabled{% endif %}
+                    class="w-14 text-center text-sm font-bold border-x border-stone-200 py-2 focus:outline-none"
+                  >
+                  <button
+                    type="button"
+                    id="qty-increase-btn"
+                    class="px-3 py-2.5 text-stone-700 hover:bg-stone-100 font-bold"
+                    aria-label="افزایش تعداد"
+                  >+</button>
+                </div>
+
+                <button
+                  type="submit"
+                  id="add-to-cart-submit-btn"
+                  {% if not selected_variant.is_in_stock %}disabled{% endif %}
+                  class="flex-grow sm:flex-grow-0 px-8 py-3 rounded-xl bg-rose-900 hover:bg-rose-800 disabled:bg-stone-300 disabled:text-stone-600 text-white font-extrabold text-sm shadow-sm transition-colors"
+                >
+                  {% if selected_variant.is_in_stock %}افزودن به سبد خرید{% else %}ناموجود{% endif %}
+                </button>
+              </form>
+            </div>
+          </div>
+        {% else %}
+          <div class="p-4 rounded-xl bg-stone-100 text-stone-600 text-sm font-medium">
+            این محصول در حال حاضر هیچ گونه فعالی برای فروش ندارد.
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Harvest Traceability & Laboratory Analysis Section -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 mt-8">
+
+      <!-- Harvest Batch Traceability Card -->
+      <section class="lg:col-span-4 bg-white rounded-2xl border border-stone-200 p-6 shadow-sm space-y-4" aria-labelledby="batch-trace-heading">
+        <div class="flex items-center justify-between border-b border-stone-100 pb-3">
+          <h2 id="batch-trace-heading" class="font-extrabold text-base text-stone-900">
+            شناسنامه برداشت و سری تولید (Batch)
+          </h2>
+          <span class="text-xs px-2 py-0.5 rounded bg-amber-50 text-amber-900 border border-amber-200 font-bold">
+            اصالت تضمین‌شده
+          </span>
+        </div>
+
+        {% if selected_batch %}
+          <dl class="space-y-3 text-xs">
+            <div class="flex justify-between py-1.5 border-b border-stone-100">
+              <dt class="text-stone-500">کد رهگیری بچ تولید:</dt>
+              <dd id="batch-code-val" class="font-mono font-bold text-stone-900">{{ selected_batch.batch_code }}</dd>
+            </div>
+            <div class="flex justify-between py-1.5 border-b border-stone-100">
+              <dt class="text-stone-500">منطقه کشت زعفران:</dt>
+              <dd id="batch-origin-val" class="font-bold text-stone-800">{{ selected_batch.origin_region }}</dd>
+            </div>
+            <div class="flex justify-between py-1.5 border-b border-stone-100">
+              <dt class="text-stone-500">سال برداشت (شمسی):</dt>
+              <dd id="batch-year-val" class="font-bold text-stone-800">{{ selected_batch.harvest_year|persian_digits }}</dd>
+            </div>
+            <div class="flex justify-between py-1.5">
+              <dt class="text-stone-500">روش فرآوری و خشک‌کردن:</dt>
+              <dd id="batch-drying-val" class="font-medium text-stone-800">{{ selected_batch.drying_method }}</dd>
+            </div>
+          </dl>
+        {% else %}
+          <p class="text-xs text-stone-500">اطلاعات بچ برای این محصول ثبت نشده است.</p>
+        {% endif %}
+      </section>
+
+      <!-- Laboratory Authenticity & ISO 3632 Metrics Table -->
+      <section class="lg:col-span-8 bg-white rounded-2xl border border-stone-200 p-6 shadow-sm space-y-4" aria-labelledby="lab-metrics-heading">
+        <div class="border-b border-stone-100 pb-3">
+          <h2 id="lab-metrics-heading" class="font-extrabold text-base text-stone-900">
+            نتایج آنالیز آزمایشگاهی و گواهی اصالت (ISO 3632-2 / ISIRI 259-2)
+          </h2>
+          <p class="text-xs text-stone-500 mt-1">
+            مقادیر زیر مستقیماً از گواهی آزمایشگاه مرجع برای سری تولید انتخاب‌شده استخراج شده‌اند
+          </p>
+        </div>
+
+        <div id="lab-certificates-container">
+          {% if selected_certificates %}
+            {% for cert in selected_certificates %}
+              <div class="border border-stone-200 rounded-xl p-4 bg-white mb-4">
+                <div class="flex flex-wrap items-center justify-between gap-3 pb-3 mb-3 border-b border-stone-100">
+                  <div>
+                    <h3 class="font-bold text-stone-800 text-sm">
+                      {{ cert.lab_name }} — شماره گواهی: {{ cert.certificate_number }}
+                    </h3>
+                    <p class="text-xs text-stone-500 mt-1">
+                      استاندارد مرجع: {{ cert.standard_reference }} | نتیجه کیفی: {{ cert.quality_grade_result }} | تاریخ صدور: {{ cert.issue_date|persian_digits }}
+                    </p>
+                  </div>
+                  {% if cert.document_file %}
+                    <a
+                      href="{{ cert.document_file.url }}"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-amber-50 text-amber-900 border border-amber-200 hover:bg-amber-100"
+                    >
+                      مشاهده و دانلود برگه اصالت آزمایشگاه
+                    </a>
+                  {% endif %}
+                </div>
+
+                {% if cert.ordered_metrics %}
+                  <div class="overflow-x-auto">
+                    <table class="w-full text-right text-xs border-collapse">
+                      <thead class="bg-stone-50 text-stone-600 border-b border-stone-200">
+                        <tr>
+                          <th class="py-2 px-3 font-semibold">شاخص آزمایشگاهی</th>
+                          <th class="py-2 px-3 font-semibold">مقدار اندازه‌گیری‌شده</th>
+                          <th class="py-2 px-3 font-semibold">واحد</th>
+                          <th class="py-2 px-3 font-semibold">حداقل استاندارد</th>
+                          <th class="py-2 px-3 font-semibold">مرجع آزمون</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {% for m in cert.ordered_metrics %}
+                          <tr class="border-b border-stone-100">
+                            <td class="py-2 px-3 font-medium text-stone-800">{{ m.metric_title }}</td>
+                            <td class="py-2 px-3 font-bold text-rose-800">{{ m.value|persian_digits }}</td>
+                            <td class="py-2 px-3 text-stone-600">{{ m.unit }}</td>
+                            <td class="py-2 px-3 text-stone-600">
+                              {% if m.min_standard_limit is not None %}{{ m.min_standard_limit|persian_digits }}{% else %}—{% endif %}
+                            </td>
+                            <td class="py-2 px-3 text-stone-500">{{ m.reference_method }}</td>
+                          </tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  </div>
+                {% endif %}
+              </div>
+            {% endfor %}
+          {% else %}
+            <p class="text-sm text-stone-500 py-4">گواهی آزمایشگاهی عمومی برای این بچ ثبت نشده است.</p>
+          {% endif %}
+        </div>
+      </section>
+    </div>
+
+    <!-- Detailed Product Description -->
+    <section class="bg-white rounded-2xl border border-stone-200 p-6 mt-8 shadow-sm" aria-labelledby="desc-heading">
+      <h2 id="desc-heading" class="font-extrabold text-base text-stone-900 border-b border-stone-100 pb-3 mb-4">
+        بررسی و توضیحات تخصصی محصول
+      </h2>
+      <div class="text-sm text-stone-700 leading-relaxed whitespace-pre-line">
+        {{ product.description }}
+      </div>
+    </section>
+
+    <!-- Related Products -->
+    {% if related_cards %}
+      <section class="mt-12" aria-labelledby="related-heading">
+        <h2 id="related-heading" class="text-xl font-extrabold text-stone-900 mb-6">
+          محصولات مشابه ({{ product.get_saffron_grade_display }})
+        </h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {% for card in related_cards %}
+            {% include "components/_product_card.html" with card=card %}
+          {% endfor %}
+        </div>
+      </section>
+    {% endif %}
+
+  </div>
+{% endblock %}

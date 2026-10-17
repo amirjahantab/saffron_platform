@@ -1,0 +1,40 @@
+/* ==========================================================================
+   Saffron E-Commerce Platform - RTL Typography & Custom Component Styles
+   ========================================================================== */
+
+:root {
+  --saffron-crimson: #9f1239;
+  --saffron-crimson-dark: #881337;
+  --saffron-gold: #d97706;
+  --saffron-gold-light: #fef3c7;
+  --surface-warm: #fafaf9;
+}
+
+html {
+  font-family: "Vazirmatn", "IRANSans", "Tahoma", system-ui, -apple-system, sans-serif;
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--surface-warm);
+  color: #1c1917;
+  overflow-x: hidden;
+}
+
+/* Accessible focus ring for keyboard navigation */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--saffron-crimson);
+  outline-offset: 2px;
+}
+
+/* Variant Selector Active State */
+.variant-option-btn[aria-pressed="true"] {
+  border-color: var(--saffron-crimson);
+  background-color: #fff1f2;
+  color: #881337;
+  box-shadow: 0 0 0 1px var(--saffron-crimson);
+}

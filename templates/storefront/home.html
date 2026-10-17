@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% load saffron_tags %}
+
+{% block content %}
+  <!-- Hero Section -->
+  <section class="relative bg-gradient-to-b from-rose-950 via-rose-900 to-stone-900 text-white py-14 sm:py-20 px-4 overflow-hidden">
+    <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+      <div class="lg:col-span-7 space-y-5">
+        <span class="inline-block px-3.5 py-1 rounded-full bg-amber-400/20 border border-amber-400/40 text-amber-300 text-xs font-bold">
+          برداشت مستقیم خراسان همراه با شناسنامه آزمایشگاهی
+        </span>
+        <h1 class="text-3xl sm:text-5xl font-extrabold leading-tight">
+          اصالت زعفران را با <span class="text-amber-400">گواهی آزمایشگاه</span> و کد رهگیری بچ تجربه کنید
+        </h1>
+        <p class="text-sm sm:text-base text-stone-200 leading-relaxed max-w-2xl">
+          در فروشگاه تخصصی زعفران جهان‌تاب، هر بسته زعفران دارای اطلاعات دقیق منطقه کشت، سال برداشت و نتایج کمی آزمایشگاه (کروسین، سافرانال و پیکروکروسین) منطبق بر استاندارد جهانی ISO 3632-2 است.
+        </p>
+        <div class="flex flex-wrap items-center gap-3 pt-2">
+          <a href="{% url 'storefront:product_list' %}" class="px-6 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-extrabold text-sm shadow-lg transition-colors">
+            مشاهده کاتالوگ و خرید آنلاین
+          </a>
+          <a href="{% url 'storefront:product_list' %}?grade=super_negin" class="px-5 py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 font-semibold text-sm transition-colors">
+            زعفران سوپر نگین صادراتی
+          </a>
+        </div>
+      </div>
+
+      <!-- Trust Pillars Box -->
+      <div class="lg:col-span-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="p-5 rounded-2xl bg-white/10 backdrop-blur border border-white/15">
+          <h2 class="font-bold text-amber-300 text-sm mb-1.5">برگه آنالیز آزمایشگاهی</h2>
+          <p class="text-xs text-stone-200 leading-relaxed">
+            نمایش شفاف عیار رنگ‌دهی (کروسین)، عطر (سافرانال) و طعم (پیکروکروسین) برای هر سری تولید.
+          </p>
+        </div>
+        <div class="p-5 rounded-2xl bg-white/10 backdrop-blur border border-white/15">
+          <h2 class="font-bold text-amber-300 text-sm mb-1.5">ردیابی مزرعه و سال برداشت</h2>
+          <p class="text-xs text-stone-200 leading-relaxed">
+            ثبت دقیق منطقه کشت (قائنات، تربت حیدریه و...) و سال برداشت شمسی روی هر گونه محصول.
+          </p>
+        </div>
+        <div class="p-5 rounded-2xl bg-white/10 backdrop-blur border border-white/15">
+          <h2 class="font-bold text-amber-300 text-sm mb-1.5">بسته‌بندی‌های متنوع و کادویی</h2>
+          <p class="text-xs text-stone-200 leading-relaxed">
+            از ظروف خاتم فلزی و کریستال تا پک‌های مخمل سوغات و بسته‌های فله ویژه فروش عمده.
+          </p>
+        </div>
+        <div class="p-5 rounded-2xl bg-white/10 backdrop-blur border border-white/15">
+          <h2 class="font-bold text-amber-300 text-sm mb-1.5">تضمین قیمت و موجودی واقعی</h2>
+          <p class="text-xs text-stone-200 leading-relaxed">
+            رزرو آنی موجودی انبار هنگام ثبت سفارش و پرداخت امن از طریق شبکه بانکی شاپرک.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 Supported Saffron Grades Category Section -->
+  <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12" aria-labelledby="grades-heading">
+    <div class="flex flex-wrap items-end justify-between gap-4 mb-6">
+      <div>
+        <h2 id="grades-heading" class="text-xl sm:text-2xl font-extrabold text-stone-900">
+          دسته‌بندی تخصصی انواع زعفران
+        </h2>
+        <p class="text-xs sm:text-sm text-stone-600 mt-1">
+          نوع زعفران متناسب با نیاز خود (صادراتی، هدیه، مصرف خانگی یا رستورانی) را انتخاب کنید
+        </p>
+      </div>
+      <a href="{% url 'storefront:product_list' %}" class="text-xs font-bold text-rose-800 hover:underline">
+        مشاهده تمام محصولات ←
+      </a>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      {% for item in grade_showcase %}
+        <a
+          href="{% url 'storefront:product_list' %}?grade={{ item.code }}"
+          class="p-5 rounded-2xl bg-white border border-stone-200 hover:border-rose-800 shadow-sm hover:shadow transition-all flex flex-col justify-between group"
+        >
+          <div>
+            <span class="inline-block text-[11px] font-bold px-2.5 py-0.5 rounded-md bg-amber-50 text-amber-900 border border-amber-200 mb-2">
+              {{ item.badge }}
+            </span>
+            <h3 class="font-extrabold text-base text-stone-900 group-hover:text-rose-800">
+              زعفران {{ item.label }}
+            </h3>
+            <p class="text-xs text-stone-600 mt-2 leading-relaxed">
+              {{ item.subtitle }}
+            </p>
+          </div>
+          <span class="text-xs font-bold text-rose-800 mt-4 inline-block">
+            مشاهده محصولات {{ item.label }} ←
+          </span>
+        </a>
+      {% endfor %}
+    </div>
+  </section>
+
+  <!-- Featured Products Grid (Strictly Real Database Records) -->
+  <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" aria-labelledby="featured-heading">
+    <div class="flex flex-wrap items-end justify-between gap-4 mb-6">
+      <div>
+        <h2 id="featured-heading" class="text-xl sm:text-2xl font-extrabold text-stone-900">
+          محصولات منتخب فروشگاه
+        </h2>
+        <p class="text-xs sm:text-sm text-stone-600 mt-1">
+          قیمت‌ها و موجودی‌ها مستقیماً از انبار مرکزی و برحسب تومان نمایش داده می‌شوند
+        </p>
+      </div>
+    </div>
+
+    {% if product_cards %}
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {% for card in product_cards %}
+          {% include "components/_product_card.html" with card=card %}
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="bg-white rounded-2xl border border-stone-200 p-8 text-center">
+        <p class="text-sm text-stone-600">در حال حاضر محصول فعالی در کاتالوگ ثبت نشده است.</p>
+      </div>
+    {% endif %}
+  </section>
+{% endblock %}

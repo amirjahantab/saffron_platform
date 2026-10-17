@@ -9,7 +9,9 @@ urlpatterns = [
     path("accounts/", include("apps.accounts.urls", namespace="accounts")),
     path("catalog/", include("apps.catalog.urls", namespace="catalog")),
     path("orders/", include("apps.orders.urls", namespace="orders")),
+    path("payments/", include("apps.payments.urls", namespace="payments")),
     path("", include("apps.core.urls", namespace="core")),
+    path("", include("apps.storefront.urls", namespace="storefront")),
 ]
 
 if settings.DEBUG:

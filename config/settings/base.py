@@ -53,6 +53,7 @@ LOCAL_APPS = [
     "apps.catalog.apps.CatalogConfig",
     "apps.orders.apps.OrdersConfig",
     "apps.payments.apps.PaymentsConfig",
+    "apps.storefront.apps.StorefrontConfig",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -83,6 +84,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "apps.storefront.context_processors.storefront_context",
             ],
         },
     },
@@ -200,6 +202,10 @@ PAYMENT_CALLBACK_BASE_URL = get_env_variable(
     "PAYMENT_CALLBACK_BASE_URL",
     default="http://127.0.0.1:8000",
 ).rstrip("/")
+PAYMENT_RELEASE_RESERVATION_ON_FAILURE = get_env_bool(
+    "PAYMENT_RELEASE_RESERVATION_ON_FAILURE",
+    default=True,
+)
 ZARINPAL_MERCHANT_ID = get_env_variable(
     "ZARINPAL_MERCHANT_ID",
     default="00000000-0000-0000-0000-000000000000",
