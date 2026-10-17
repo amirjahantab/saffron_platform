@@ -52,6 +52,7 @@ LOCAL_APPS = [
     "apps.accounts.apps.AccountsConfig",
     "apps.catalog.apps.CatalogConfig",
     "apps.orders.apps.OrdersConfig",
+    "apps.payments.apps.PaymentsConfig",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -192,6 +193,19 @@ ORDER_DEFAULT_SHIPPING_COST_RIAL = int(
 ORDER_FREE_SHIPPING_THRESHOLD_RIAL = int(
     get_env_variable("ORDER_FREE_SHIPPING_THRESHOLD_RIAL", default="15000000")
 )
+
+# Payment Gateway Settings (Phase 5)
+PAYMENT_DEFAULT_GATEWAY = get_env_variable("PAYMENT_DEFAULT_GATEWAY", default="sandbox")
+PAYMENT_CALLBACK_BASE_URL = get_env_variable(
+    "PAYMENT_CALLBACK_BASE_URL",
+    default="http://127.0.0.1:8000",
+).rstrip("/")
+ZARINPAL_MERCHANT_ID = get_env_variable(
+    "ZARINPAL_MERCHANT_ID",
+    default="00000000-0000-0000-0000-000000000000",
+)
+ZARINPAL_SANDBOX = get_env_bool("ZARINPAL_SANDBOX", default=True)
+ZARINPAL_TIMEOUT_SECONDS = int(get_env_variable("ZARINPAL_TIMEOUT_SECONDS", default="10"))
 
 # Structured Logging
 LOG_LEVEL = get_env_variable("DJANGO_LOG_LEVEL", default="INFO").upper()

@@ -1,0 +1,1 @@
+"""Payment gateway adapters and unified provider interface."""
