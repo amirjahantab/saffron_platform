@@ -40,6 +40,12 @@ class OrderError(SaffronBaseError):
         self.code = code or self.default_code
 
 
+class EmptyCartCheckoutError(OrderError):
+    """Raised when attempting to checkout with an empty or non-existent cart."""
+
+    default_code = "empty_cart"
+
+
 class InvalidOrderStateTransitionError(OrderError):
     """Raised when an illegal order status transition is attempted."""
 
