@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% load saffron_tags %}
+
+{% block content %}
+  <div class="max-w-lg mx-auto px-4 py-12">
+    <div class="bg-white rounded-3xl border-2 border-stone-300 shadow-lg p-6 sm:p-8 space-y-6">
+
+      <div class="flex items-center justify-between border-b border-stone-200 pb-4">
+        <div>
+          <span class="px-2.5 py-1 rounded bg-amber-100 text-amber-900 text-xs font-extrabold">
+            محیط آزمایشی شاپرک (Sandbox)
+          </span>
+          <h1 class="text-lg font-extrabold text-stone-900 mt-2">
+            شبیه‌ساز درگاه پرداخت اینترنتی
+          </h1>
+        </div>
+        <div class="text-left text-xs text-stone-500">
+          <span>پذیرنده: زعفران جهانتاب</span>
+        </div>
+      </div>
+
+      <dl class="bg-stone-50 rounded-2xl p-4 border border-stone-200 space-y-2.5 text-xs">
+        <div class="flex justify-between">
+          <dt class="text-stone-500">شماره سفارش:</dt>
+          <dd class="font-mono font-bold text-stone-900">{{ order.order_number }}</dd>
+        </div>
+        <div class="flex justify-between">
+          <dt class="text-stone-500">شناسه تراکنش (Authority):</dt>
+          <dd class="font-mono text-stone-700">{{ tx.authority }}</dd>
+        </div>
+        <div class="flex justify-between border-t border-stone-200 pt-2">
+          <dt class="text-stone-700 font-bold">مبلغ درگاه (ریال شاپرک):</dt>
+          <dd class="font-extrabold text-stone-900">{{ tx.amount_rial|persian_digits }} ریال</dd>
+        </div>
+        <div class="flex justify-between">
+          <dt class="text-stone-700 font-bold">معادل به تومان:</dt>
+          <dd class="font-extrabold text-rose-900 text-sm">{{ tx.formatted_amount_toman }}</dd>
+        </div>
+      </dl>
+
+      <p class="text-xs text-stone-600 leading-relaxed">
+        در این صفحه می‌توانید رفتار بازگشت از بانک را شبیه‌سازی کنید. پس از کلیک، سرور فروشگاه استعلام سمت سرور (Server-to-Server Verification) را انجام خواهد داد:
+      </p>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+        <a
+          href="{% url 'storefront:payment_result_page' provider='sandbox' %}?Authority={{ tx.authority }}&Status=OK"
+          class="py-3 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-center font-extrabold text-xs shadow-sm transition-colors"
+        >
+          ✓ شبیه‌سازی پرداخت موفق (Status=OK)
+        </a>
+
+        <a
+          href="{% url 'storefront:payment_result_page' provider='sandbox' %}?Authority={{ tx.authority }}&Status=NOK"
+          class="py-3 px-4 rounded-xl bg-rose-700 hover:bg-rose-800 text-white text-center font-extrabold text-xs shadow-sm transition-colors"
+        >
+          ✕ انصراف از پرداخت (Status=NOK)
+        </a>
+      </div>
+
+    </div>
+  </div>
+{% endblock %}

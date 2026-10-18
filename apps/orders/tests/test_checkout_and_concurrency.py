@@ -96,7 +96,7 @@ class CheckoutFlowAndSecurityTests(TestCase):
         self.client.force_login(self.user_a)
 
         checkout_payload = {
-            "recipient_full_name": "امیررضا جهان‌تاب",
+            "recipient_full_name": "امیررضا جهانتاب",
             "recipient_phone": "۰۹۱۵۱۱۱۰۰۰۱",
             "province": "خراسان رضوی",
             "city": "مشهد",

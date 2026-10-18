@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% load saffron_tags %}
+
+{% block content %}
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <div class="pb-6 border-b border-stone-200 flex flex-wrap items-center justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-extrabold text-stone-900">حساب کاربری و سفارش‌های من</h1>
+        <p class="text-xs text-stone-600 mt-1">
+          شماره موبایل تأییدشده: <strong class="text-stone-900">{{ request.user.phone_number|persian_digits }}</strong>
+        </p>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 mt-6">
+
+      <!-- Right Column: User Profile Form -->
+      <aside class="lg:col-span-4 space-y-6">
+        <section class="bg-white rounded-2xl border border-stone-200 p-6 shadow-sm space-y-4">
+          <h2 class="font-extrabold text-base text-stone-900 border-b border-stone-100 pb-3">
+            مشخصات فردی
+          </h2>
+
+          <form action="{% url 'storefront:account_orders' %}" method="post" class="space-y-4" novalidate>
+            {% csrf_token %}
+            <div>
+              <label for="id_full_name" class="block text-xs font-bold text-stone-700 mb-1">
+                نام و نام خانوادگی:
+              </label>
+              <input
+                id="id_full_name"
+                type="text"
+                name="full_name"
+                value="{{ profile_form.full_name.value|default:'' }}"
+                placeholder="نام خود را وارد کنید"
+                class="w-full text-xs border border-stone-300 rounded-xl px-3 py-2"
+              >
+              {% for err in profile_form.full_name.errors %}
+                <p class="mt-1 text-xs text-rose-700">{{ err }}</p>
+              {% endfor %}
+            </div>
+
+            <div>
+              <label for="id_email" class="block text-xs font-bold text-stone-700 mb-1">
+                ایمیل (اختیاری):
+              </label>
+              <input
+                id="id_email"
+                type="email"
+                name="email"
+                value="{{ profile_form.email.value|default:'' }}"
+                placeholder="example@domain.com"
+                class="w-full text-left dir-ltr text-xs border border-stone-300 rounded-xl px-3 py-2"
+              >
+              {% for err in profile_form.email.errors %}
+                <p class="mt-1 text-xs text-rose-700">{{ err }}</p>
+              {% endfor %}
+            </div>
+
+            <button
+              type="submit"
+              class="w-full py-2.5 px-4 rounded-xl bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold"
+            >
+              ذخیره مشخصات
+            </button>
+          </form>
+        </section>
+      </aside>
+
+      <!-- Left Column: Order History List -->
+      <section class="lg:col-span-8 space-y-4" aria-labelledby="orders-list-heading">
+        <h2 id="orders-list-heading" class="font-extrabold text-lg text-stone-900">
+          تاریخچه سفارش‌های ثبت‌شده ({{ orders|length|persian_digits }})
+        </h2>
+
+        {% if orders %}
+          <div class="space-y-4">
+            {% for order in orders %}
+              <article class="bg-white rounded-2xl border border-stone-200 p-5 shadow-sm hover:border-stone-300 transition-all">
+                <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-stone-100">
+                  <div class="flex items-center gap-3">
+                    <span class="font-mono font-extrabold text-sm text-stone-900">
+                      {{ order.order_number }}
+                    </span>
+                    <span class="text-xs px-2.5 py-1 rounded-full font-bold
+                      {% if order.status == 'paid' or order.status == 'delivered' %}
+                        bg-emerald-50 text-emerald-800 border border-emerald-200
+                      {% elif order.status == 'pending_payment' %}
+                        bg-amber-50 text-amber-900 border border-amber-200
+                      {% else %}
+                        bg-stone-100 text-stone-600
+                      {% endif %}"
+                    >
+                      {{ order.get_status_display }}
+                    </span>
+                  </div>
+
+                  <div class="text-xs text-stone-500">
+                    تاریخ ثبت: {{ order.created_at|date:"Y/m/d H:i"|persian_digits }}
+                  </div>
+                </div>
+
+                <div class="py-3 flex flex-wrap items-center justify-between gap-4 text-xs">
+                  <div class="space-y-1 text-stone-600">
+                    <p>گیرنده: <strong class="text-stone-800">{{ order.recipient_full_name }}</strong> ({{ order.province }}، {{ order.city }})</p>
+                    <p>تعداد اقلام: <strong>{{ order.items.count|persian_digits }} ردیف کالا</strong></p>
+                  </div>
+
+                  <div class="text-left">
+                    <span class="text-stone-500 block">مبلغ کل سفارش:</span>
+                    <span class="text-base font-extrabold text-rose-900">
+                      {{ order.formatted_payable_toman }}
+                    </span>
+                  </div>
+                </div>
+
+                <div class="pt-3 border-t border-stone-100 flex justify-end">
+                  <a
+                    href="{% url 'storefront:account_order_detail' order_number=order.order_number %}"
+                    class="inline-flex items-center gap-1 text-xs font-bold text-rose-900 hover:underline"
+                  >
+                    مشاهده جزئیات فاکتور و وضعیت پرداخت ←
+                  </a>
+                </div>
+              </article>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="bg-white rounded-2xl border border-stone-200 p-10 text-center space-y-3">
+            <p class="text-sm font-bold text-stone-700">شما هنوز سفارشی ثبت نکرده‌اید.</p>
+            <a href="{% url 'storefront:product_list' %}" class="inline-block px-5 py-2.5 rounded-xl bg-rose-900 text-white text-xs font-bold">
+              مشاهده محصولات فروشگاه
+            </a>
+          </div>
+        {% endif %}
+      </section>
+
+    </div>
+  </div>
+{% endblock %}

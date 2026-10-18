@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+{% load saffron_tags %}
+
+{% block content %}
+  <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+
+    <!-- Top Navigation & Status Header -->
+    <div class="flex flex-wrap items-center justify-between gap-4">
+      <div>
+        <a href="{% url 'storefront:account_orders' %}" class="text-xs font-semibold text-stone-500 hover:text-rose-800">
+          → بازگشت به فهرست سفارش‌ها
+        </a>
+        <h1 class="text-2xl font-extrabold text-stone-900 mt-1">
+          جزئیات سفارش <span class="font-mono">{{ order.order_number }}</span>
+        </h1>
+      </div>
+
+      <span class="px-3.5 py-1.5 rounded-full text-xs font-extrabold
+        {% if order.status == 'paid' or order.status == 'delivered' %}
+          bg-emerald-50 text-emerald-800 border border-emerald-200
+        {% elif order.status == 'pending_payment' %}
+          bg-amber-50 text-amber-900 border border-amber-200
+        {% else %}
+          bg-stone-100 text-stone-700 border border-stone-300
+        {% endif %}"
+      >
+        وضعیت: {{ order.get_status_display }}
+      </span>
+    </div>
+
+    <!-- Action Banner for PENDING_PAYMENT Orders -->
+    {% if order.status == 'pending_payment' %}
+      <div class="bg-amber-50 border border-amber-300 rounded-2xl p-5 flex flex-wrap items-center justify-between gap-4">
+        <div class="space-y-1 text-xs">
+          <p class="font-extrabold text-amber-950 text-sm">
+            این سفارش در انتظار پرداخت آنلاین است
+          </p>
+          <p class="text-amber-900">
+            موجودی زعفران‌های این سفارش تا زمان <strong>{{ order.reservation_expires_at|date:"H:i"|persian_digits }}</strong> برای شما رزرو شده است.
+          </p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2.5">
+          {% if is_payable %}
+            <form action="{% url 'storefront:account_order_pay' order_number=order.order_number %}" method="post">
+              {% csrf_token %}
+              <button
+                type="submit"
+                class="px-5 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold text-xs shadow-sm transition-colors"
+              >
+                پرداخت آنلاین ({{ order.formatted_payable_toman }})
+              </button>
+            </form>
+          {% endif %}
+
+          <form action="{% url 'storefront:account_order_cancel' order_number=order.order_number %}" method="post">
+            {% csrf_token %}
+            <input type="hidden" name="cancel_reason" value="لغو توسط مشتری در صفحه سفارش">
+            <button
+              type="submit"
+              class="px-4 py-2.5 rounded-xl border border-rose-300 text-rose-800 hover:bg-rose-50 font-bold text-xs transition-colors"
+            >
+              لغو سفارش و آزادسازی رزرو
+            </button>
+          </form>
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- Recipient & Financial Summary Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <section class="bg-white rounded-2xl border border-stone-200 p-5 shadow-sm space-y-3 text-xs">
+        <h2 class="font-extrabold text-sm text-stone-900 border-b border-stone-100 pb-2.5">
+          اطلاعات گیرنده و ارسال
+        </h2>
+        <p><span class="text-stone-500">گیرنده:</span> <strong class="text-stone-900">{{ order.recipient_full_name }}</strong></p>
+        <p><span class="text-stone-500">شماره تماس:</span> <strong class="text-stone-900">{{ order.recipient_phone|persian_digits }}</strong></p>
+        <p><span class="text-stone-500">نشانی پستی:</span> {{ order.province }}، {{ order.city }} — {{ order.address_line }}</p>
+        <p><span class="text-stone-500">کد پستی:</span> <span class="font-mono">{{ order.postal_code|persian_digits }}</span></p>
+        <p><span class="text-stone-500">روش ارسال:</span> {{ order.get_shipping_method_display }} (وزن مرسوله: {{ order.total_gross_weight_grams|persian_digits }} گرم)</p>
+        {% if order.tracking_code %}
+          <p><span class="text-stone-500">کد رهگیری پستی:</span> <strong class="font-mono text-emerald-800">{{ order.tracking_code }}</strong></p>
+        {% endif %}
+      </section>
+
+      <section class="bg-white rounded-2xl border border-stone-200 p-5 shadow-sm space-y-3 text-xs">
+        <h2 class="font-extrabold text-sm text-stone-900 border-b border-stone-100 pb-2.5">
+          جزئیات مالی فاکتور
+        </h2>
+        <div class="flex justify-between">
+          <span class="text-stone-500">جمع قیمت پایه اقلام:</span>
+          <span>{{ order.subtotal_base_rial|toman }}</span>
+        </div>
+        <div class="flex justify-between text-emerald-700 font-semibold">
+          <span>مجموع تخفیف اقلام:</span>
+          <span>{{ order.total_discount_rial|toman }}</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-stone-500">هزینه ارسال:</span>
+          <span>{{ order.shipping_cost_rial|toman }}</span>
+        </div>
+        <div class="flex justify-between border-t border-stone-200 pt-2.5 text-sm font-extrabold text-rose-900">
+          <span>مبلغ نهایی فاکتور:</span>
+          <span>{{ order.formatted_payable_toman }}</span>
+        </div>
+      </section>
+    </div>
+
+    <!-- Immutable Order Line Items & Batch Traceability Table -->
+    <section class="bg-white rounded-2xl border border-stone-200 p-6 shadow-sm space-y-4">
+      <h2 class="font-extrabold text-sm text-stone-900 border-b border-stone-100 pb-2.5">
+        اقلام سفارش و شناسنامه اصالت (Snapshot زمان خرید)
+      </h2>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-right text-xs border-collapse">
+          <thead class="bg-stone-50 text-stone-600 border-b border-stone-200">
+            <tr>
+              <th class="py-2.5 px-3 font-semibold">شرح محصول و بسته‌بندی</th>
+              <th class="py-2.5 px-3 font-semibold">کد SKU</th>
+              <th class="py-2.5 px-3 font-semibold">بچ برداشت و منطقه کشت</th>
+              <th class="py-2.5 px-3 font-semibold">تعداد</th>
+              <th class="py-2.5 px-3 font-semibold">قیمت واحد</th>
+              <th class="py-2.5 px-3 font-semibold">جمع ردیف</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in items %}
+              <tr class="border-b border-stone-100">
+                <td class="py-3 px-3">
+                  <strong class="text-stone-900 block">{{ item.product_name_snapshot }}</strong>
+                  <span class="text-stone-500">{{ item.weight_label_snapshot }} | {{ item.packaging_name_snapshot }}</span>
+                </td>
+                <td class="py-3 px-3 font-mono text-stone-700">{{ item.sku_snapshot }}</td>
+                <td class="py-3 px-3 text-stone-700">
+                  <span class="font-mono font-bold">{{ item.batch_code_snapshot }}</span>
+                  <span class="block text-[11px] text-stone-500">{{ item.origin_region_snapshot }} (برداشت {{ item.harvest_year_snapshot|persian_digits }})</span>
+                </td>
+                <td class="py-3 px-3 font-bold">{{ item.quantity|persian_digits }}</td>
+                <td class="py-3 px-3">{{ item.unit_effective_price_rial|toman }}</td>
+                <td class="py-3 px-3 font-extrabold text-rose-900">{{ item.formatted_line_effective_total_toman }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Payment Transactions History -->
+    {% if payments %}
+      <section class="bg-white rounded-2xl border border-stone-200 p-6 shadow-sm space-y-3">
+        <h2 class="font-extrabold text-sm text-stone-900 border-b border-stone-100 pb-2.5">
+          تراکنش‌های بانکی مرتبط با این سفارش
+        </h2>
+        <div class="space-y-2 text-xs">
+          {% for p in payments %}
+            <div class="flex flex-wrap items-center justify-between gap-2 p-3 rounded-xl bg-stone-50 border border-stone-200">
+              <div>
+                <span class="font-bold text-stone-800">{{ p.get_provider_display }}</span>
+                <span class="mx-2 text-stone-300">|</span>
+                <span>وضعیت: <strong>{{ p.get_status_display }}</strong></span>
+                {% if p.reference_id %}
+                  <span class="mx-2 text-stone-300">|</span>
+                  <span>کد پیگیری: <strong class="font-mono text-emerald-800">{{ p.reference_id }}</strong></span>
+                {% endif %}
+              </div>
+              <span class="font-bold text-stone-900">{{ p.formatted_amount_toman }}</span>
+            </div>
+          {% endfor %}
+        </div>
+      </section>
+    {% endif %}
+
+  </div>
+{% endblock %}

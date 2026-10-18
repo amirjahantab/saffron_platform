@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+{% load saffron_tags %}
+
+{% block content %}
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <!-- Header -->
+    <div class="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-stone-200">
+      <div>
+        <h1 class="text-2xl font-extrabold text-stone-900">سبد خرید شما</h1>
+        <p class="text-xs text-stone-600 mt-1">
+          تمامی قیمت‌ها به تومان و مستقیماً بر اساس آخرین موجودی و قیمت مصوب انبار مرکزی محاسبه شده‌اند.
+        </p>
+      </div>
+
+      {% if cart.items_count > 0 %}
+        <form action="{% url 'storefront:cart_clear' %}" method="post">
+          {% csrf_token %}
+          <button
+            type="submit"
+            class="text-xs font-semibold text-rose-700 hover:text-rose-900 px-3 py-1.5 rounded-lg border border-rose-200 hover:bg-rose-50 transition-colors"
+          >
+            خالی کردن سبد خرید
+          </button>
+        </form>
+      {% endif %}
+    </div>
+
+    {% if cart.items_count > 0 %}
+      <!-- Free Shipping Progress Banner -->
+      <div class="mt-6 bg-amber-50/80 border border-amber-200 rounded-2xl p-4">
+        <div class="flex flex-wrap items-center justify-between gap-2 text-xs font-semibold text-amber-950 mb-2">
+          {% if preview.is_free_shipping %}
+            <span>🎉 تبریک! سفارش شما مشمول <strong>ارسال رایگان</strong> به سراسر کشور شده است.</span>
+          {% else %}
+            <span>تا ارسال رایگان فقط <strong>{{ preview.remaining_for_free_formatted }}</strong> دیگر باقی مانده است.</span>
+          {% endif %}
+          <span>{{ preview.free_shipping_progress_pct|persian_digits }}٪</span>
+        </div>
+        <div class="w-full h-2 bg-amber-200/70 rounded-full overflow-hidden">
+          <div class="h-full bg-amber-600 rounded-full transition-all" style="width: {{ preview.free_shipping_progress_pct }}%;"></div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 mt-6">
+        <!-- Cart Line Items -->
+        <section class="lg:col-span-8 space-y-4" aria-label="اقلام سبد خرید">
+          {% for item in cart.items %}
+            <article class="bg-white rounded-2xl border {% if not item.is_available_for_checkout %}border-rose-400 bg-rose-50/20{% else %}border-stone-200{% endif %} p-5 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div class="space-y-1.5">
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="px-2 py-0.5 rounded bg-stone-900 text-amber-300 text-[11px] font-bold">
+                    {{ item.saffron_grade_label }}
+                  </span>
+                  <span class="text-xs text-stone-500 font-mono">SKU: {{ item.sku }}</span>
+                  <span class="text-xs text-stone-500">بچ تولید: {{ item.batch_code }}</span>
+                </div>
+
+                <h2 class="font-extrabold text-base text-stone-900">
+                  <a href="{% url 'storefront:product_detail' slug=item.product_slug %}" class="hover:text-rose-800">
+                    {{ item.product_name }}
+                  </a>
+                </h2>
+
+                <p class="text-xs text-stone-600">
+                  وزن: <strong>{{ item.weight_label }}</strong> | بسته‌بندی: <strong>{{ item.packaging_name }}</strong>
+                </p>
+
+                {% if not item.is_available_for_checkout %}
+                  <p class="text-xs font-bold text-rose-700" role="alert">
+                    ⚠️ موجودی فعلی انبار ({{ item.available_stock|persian_digits }} عدد) کمتر از تعداد انتخابی شماست. لطفاً تعداد را اصلاح کنید.
+                  </p>
+                {% endif %}
+              </div>
+
+              <!-- Quantity Controls & Line Pricing -->
+              <div class="w-full sm:w-auto flex sm:flex-col items-center sm:items-end justify-between gap-3 pt-3 sm:pt-0 border-t sm:border-t-0 border-stone-100">
+                <div class="text-left">
+                  {% if item.pricing.line_discount_total_rial > 0 %}
+                    <span class="block text-xs text-stone-400 line-through">
+                      {{ item.pricing.line_base_total_rial|toman }}
+                    </span>
+                  {% endif %}
+                  <span class="text-base font-extrabold text-rose-900">
+                    {{ item.pricing.formatted_line_effective_total_toman }}
+                  </span>
+                </div>
+
+                <div class="flex items-center gap-2">
+                  <!-- Update Quantity Form -->
+                  <form action="{% url 'storefront:cart_update' %}" method="post" class="flex items-center gap-1.5">
+                    {% csrf_token %}
+                    <input type="hidden" name="variant_public_id" value="{{ item.variant_public_id }}">
+                    <label for="qty-{{ item.item_public_id }}" class="sr-only">تعداد</label>
+                    <input
+                      id="qty-{{ item.item_public_id }}"
+                      type="number"
+                      name="quantity"
+                      value="{{ item.quantity }}"
+                      min="0"
+                      max="{{ item.available_stock }}"
+                      class="w-16 text-center text-xs font-bold border border-stone-300 rounded-lg py-1.5"
+                    >
+                    <button
+                      type="submit"
+                      class="px-2.5 py-1.5 rounded-lg bg-stone-800 hover:bg-stone-900 text-white text-xs font-semibold"
+                    >
+                      به‌روزرسانی
+                    </button>
+                  </form>
+
+                  <!-- Remove Item Form -->
+                  <form action="{% url 'storefront:cart_remove' %}" method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="variant_public_id" value="{{ item.variant_public_id }}">
+                    <button
+                      type="submit"
+                      class="p-1.5 rounded-lg text-stone-400 hover:text-rose-700 hover:bg-rose-50 transition-colors text-xs"
+                      aria-label="حذف این قلم از سبد خرید"
+                      title="حذف محصول"
+                    >
+                      حذف
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </article>
+          {% endfor %}
+        </section>
+
+        <!-- Authoritative Order Summary Box -->
+        <aside class="lg:col-span-4">
+          <div class="bg-white rounded-2xl border border-stone-200 p-6 shadow-sm space-y-4 sticky top-24">
+            <h2 class="font-extrabold text-base text-stone-900 border-b border-stone-100 pb-3">
+              خلاصه صورت‌حساب
+            </h2>
+
+            <dl class="space-y-3 text-xs">
+              <div class="flex justify-between text-stone-600">
+                <dt>تعداد کل بسته‌ها:</dt>
+                <dd class="font-bold text-stone-900">{{ cart.total_units_count|persian_digits }} عدد</dd>
+              </div>
+              <div class="flex justify-between text-stone-600">
+                <dt>وزن ناخالص مرسوله:</dt>
+                <dd class="font-bold text-stone-900">{{ cart.total_gross_weight_grams|persian_digits }} گرم</dd>
+              </div>
+              <div class="flex justify-between text-stone-600">
+                <dt>جمع قیمت پایه اقلام:</dt>
+                <dd class="font-semibold text-stone-800">{{ cart.pricing.formatted_subtotal_base_toman }}</dd>
+              </div>
+              {% if cart.pricing.total_discount_rial > 0 %}
+                <div class="flex justify-between text-emerald-700 font-semibold">
+                  <dt>سود شما از تخفیف‌ها:</dt>
+                  <dd>{{ cart.pricing.formatted_total_discount_toman }}</dd>
+                </div>
+              {% endif %}
+              <div class="flex justify-between text-stone-600">
+                <dt>هزینه ارسال پیشتاز:</dt>
+                <dd class="font-bold text-stone-800">{{ preview.formatted_shipping_cost_toman }}</dd>
+              </div>
+
+              <div class="border-t border-stone-200 pt-3 flex items-center justify-between text-sm">
+                <dt class="font-extrabold text-stone-900">مبلغ قابل پرداخت:</dt>
+                <dd class="text-lg font-extrabold text-rose-900">
+                  {{ preview.formatted_final_payable_toman }}
+                </dd>
+              </div>
+            </dl>
+
+            <div class="pt-2 space-y-2.5">
+              <a
+                href="{% url 'storefront:checkout_page' %}"
+                class="block w-full text-center py-3 px-4 rounded-xl bg-rose-900 hover:bg-rose-800 text-white font-extrabold text-sm shadow-sm transition-colors"
+              >
+                ادامه جهت تسویه‌حساب و ثبت سفارش
+              </a>
+              <a
+                href="{% url 'storefront:product_list' %}"
+                class="block w-full text-center py-2.5 px-4 rounded-xl border border-stone-200 hover:bg-stone-50 text-stone-700 text-xs font-semibold"
+              >
+                افزودن محصولات بیشتر از فروشگاه
+              </a>
+            </div>
+          </div>
+        </aside>
+      </div>
+
+    {% else %}
+      <!-- Empty Cart State -->
+      <div class="bg-white rounded-3xl border border-stone-200 p-12 text-center max-w-lg mx-auto my-8 space-y-4">
+        <div class="w-16 h-16 mx-auto rounded-full bg-stone-100 flex items-center justify-center text-2xl">
+          🛒
+        </div>
+        <h2 class="text-lg font-extrabold text-stone-900">سبد خرید شما خالی است</h2>
+        <p class="text-xs text-stone-500 leading-relaxed">
+          انواع زعفران سوپر نگین، نگین، سرگل و پوشال را همراه با گواهی آزمایشگاهی در کاتالوگ مشاهده و انتخاب کنید.
+        </p>
+        <a
+          href="{% url 'storefront:product_list' %}"
+          class="inline-block px-6 py-3 rounded-xl bg-rose-900 hover:bg-rose-800 text-white font-bold text-xs shadow-sm"
+        >
+          مشاهده کاتالوگ محصولات
+        </a>
+      </div>
+    {% endif %}
+
+  </div>
+{% endblock %}

@@ -1,11 +1,12 @@
 /**
- * Modular Storefront JavaScript (Sub-phase 6.1)
+ * Modular Storefront JavaScript (Phase 6 - Sub-phases 6.1 & 6.2)
  * Handles:
- * 1. Interactive Variant Selection (Weight & Packaging) on Product Detail page
- *    using authoritative server-rendered JSON (`#product-variants-data`).
+ * 1. Interactive Variant Selection (Weight & Packaging) on Product Detail page.
  * 2. Dynamic updating of Price (Toman), Stock status, SKU, Harvest Batch, and Lab Metrics table.
  * 3. Quantity stepper (+ / -) respecting variant `min_order_quantity` and `max_order_quantity`.
  * 4. Progressive AJAX Add-to-Cart with live navbar badge updates and toast notifications.
+ * 5. OTP Resend Countdown Timer on `/auth/login/`.
+ * 6. Saved Address vs. New Address form toggle on `/checkout/`.
  */
 
 (function () {
@@ -62,7 +63,7 @@
   }
 
   /**
-   * Initialize Interactive Variant Selector on Product Detail Page
+   * 1. Interactive Variant Selector on Product Detail Page
    */
   function initProductDetailVariantSelector() {
     const dataScript = document.getElementById("product-variants-data");
@@ -84,7 +85,6 @@
     const qtyIncBtn = document.getElementById("qty-increase-btn");
     const addToCartBtn = document.getElementById("add-to-cart-submit-btn");
 
-    // DOM targets for dynamic updates
     const skuEl = document.getElementById("variant-sku");
     const effectivePriceEl = document.getElementById("variant-effective-price");
     const basePriceContainer = document.getElementById("variant-base-price-container");
@@ -290,7 +290,7 @@
   }
 
   /**
-   * Progressive AJAX Add-to-Cart Enhancement
+   * 2. Progressive AJAX Add-to-Cart Enhancement
    */
   function initAjaxAddToCartForms() {
     const forms = document.querySelectorAll(".js-add-to-cart-form");
@@ -298,7 +298,7 @@
       form.addEventListener("submit", async (event) => {
         const apiUrl = form.getAttribute("data-api-url");
         if (!apiUrl || typeof window.fetch !== "function") {
-          return; // Fall back to standard HTML POST
+          return;
         }
 
         event.preventDefault();
@@ -341,7 +341,6 @@
 
           showToast(data.message || "محصول به سبد خرید اضافه شد.", false);
 
-          // Update live navbar cart counter and payable total
           if (data.cart) {
             const countBadge = document.getElementById("nav-cart-count");
             const payableEl = document.getElementById("nav-cart-payable");
@@ -353,7 +352,6 @@
             }
           }
         } catch (err) {
-          // If network fails, submit standard form as fallback
           form.submit();
         } finally {
           if (submitBtn) {
@@ -365,8 +363,67 @@
     });
   }
 
+  /**
+   * 3. OTP Resend Countdown Timer on `/auth/login/`
+   */
+  function initOtpCountdownTimer() {
+    const timerEl = document.getElementById("otp-countdown-timer");
+    const resendBtn = document.getElementById("otp-resend-btn");
+    if (!timerEl) return;
+
+    let remaining = parseInt(timerEl.getAttribute("data-seconds") || "0", 10);
+    if (isNaN(remaining) || remaining <= 0) {
+      if (resendBtn) resendBtn.disabled = false;
+      return;
+    }
+
+    const interval = setInterval(() => {
+      remaining -= 1;
+      if (remaining <= 0) {
+        clearInterval(interval);
+        timerEl.textContent = "۰۰:۰۰";
+        if (resendBtn) {
+          resendBtn.disabled = false;
+          resendBtn.classList.remove("opacity-50", "cursor-not-allowed");
+        }
+      } else {
+        const mins = String(Math.floor(remaining / 60)).padStart(2, "0");
+        const secs = String(remaining % 60).padStart(2, "0");
+        timerEl.textContent = toPersianDigits(`${mins}:${secs}`);
+      }
+    }, 1000);
+  }
+
+  /**
+   * 4. Checkout Saved Address vs. New Address Toggle on `/checkout/`
+   */
+  function initCheckoutAddressToggle() {
+    const addressRadios = document.querySelectorAll("input[name='shipping_address_public_id']");
+    const newAddressBox = document.getElementById("new-address-fields-container");
+    if (!addressRadios.length || !newAddressBox) return;
+
+    function updateVisibility() {
+      let selectedValue = "";
+      addressRadios.forEach((radio) => {
+        if (radio.checked) selectedValue = radio.value;
+      });
+      if (!selectedValue) {
+        newAddressBox.classList.remove("hidden");
+      } else {
+        newAddressBox.classList.add("hidden");
+      }
+    }
+
+    addressRadios.forEach((radio) => {
+      radio.addEventListener("change", updateVisibility);
+    });
+    updateVisibility();
+  }
+
   document.addEventListener("DOMContentLoaded", () => {
     initProductDetailVariantSelector();
     initAjaxAddToCartForms();
+    initOtpCountdownTimer();
+    initCheckoutAddressToggle();
   });
 })();

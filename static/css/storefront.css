@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Saffron E-Commerce Platform - RTL Typography & Custom Component Styles
+   Saffron E-Commerce Platform - Shabnam Persian Typography & RTL Styles
    ========================================================================== */
 
 :root {
@@ -8,17 +8,40 @@
   --saffron-gold: #d97706;
   --saffron-gold-light: #fef3c7;
   --surface-warm: #fafaf9;
+  --font-persian: "Shabnam", "Tahoma", system-ui, -apple-system, sans-serif;
+}
+
+html,
+body,
+button,
+input,
+select,
+textarea {
+  font-family: var(--font-persian) !important;
+  letter-spacing: 0 !important;
 }
 
 html {
-  font-family: "Vazirmatn", "IRANSans", "Tahoma", system-ui, -apple-system, sans-serif;
   scroll-behavior: smooth;
+  line-height: 1.75;
 }
 
 body {
   background-color: var(--surface-warm);
   color: #1c1917;
   overflow-x: hidden;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-persian) !important;
+  line-height: 1.45;
+}
+
+/* Keep SKU and Tracking Codes readable while preserving Persian UI */
+.font-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
 }
 
 /* Accessible focus ring for keyboard navigation */

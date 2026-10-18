@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% load saffron_tags %}
+
+{% block content %}
+  <div class="max-w-xl mx-auto px-4 py-12">
+    <div class="bg-white rounded-3xl border border-stone-200 shadow-sm p-6 sm:p-8 text-center space-y-6">
+
+      {% if is_success and tx %}
+        <div class="w-16 h-16 mx-auto rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center text-3xl font-bold">
+          ✓
+        </div>
+        <div class="space-y-1.5">
+          <h1 class="text-xl font-extrabold text-emerald-900">
+            پرداخت شما با موفقیت تأیید و ثبت شد
+          </h1>
+          <p class="text-xs text-stone-600">
+            تراکنش در استعلام سمت سرور تأیید گردید و موجودی سفارش شما قطعی شد.
+          </p>
+        </div>
+
+        <dl class="bg-stone-50 rounded-2xl p-4 border border-stone-200 text-right space-y-2.5 text-xs">
+          <div class="flex justify-between">
+            <dt class="text-stone-500">شماره سفارش:</dt>
+            <dd class="font-mono font-bold text-stone-900">{{ order.order_number }}</dd>
+          </div>
+          <div class="flex justify-between">
+            <dt class="text-stone-500">شماره پیگیری بانکی (Ref ID):</dt>
+            <dd class="font-mono font-extrabold text-emerald-800">{{ tx.reference_id }}</dd>
+          </div>
+          <div class="flex justify-between">
+            <dt class="text-stone-500">مبلغ پرداخت‌شده:</dt>
+            <dd class="font-extrabold text-stone-900">{{ tx.formatted_amount_toman }}</dd>
+          </div>
+          {% if tx.card_pan_masked %}
+            <div class="flex justify-between">
+              <dt class="text-stone-500">شماره کارت:</dt>
+              <dd class="font-mono text-stone-700 dir-ltr">{{ tx.card_pan_masked }}</dd>
+            </div>
+          {% endif %}
+        </dl>
+
+        <div class="flex flex-wrap items-center justify-center gap-3 pt-2">
+          <a
+            href="{% url 'storefront:account_order_detail' order_number=order.order_number %}"
+            class="px-6 py-3 rounded-xl bg-rose-900 hover:bg-rose-800 text-white font-bold text-xs"
+          >
+            مشاهده فاکتور و جزئیات سفارش
+          </a>
+          <a
+            href="{% url 'storefront:home' %}"
+            class="px-5 py-3 rounded-xl border border-stone-300 text-stone-700 font-semibold text-xs"
+          >
+            بازگشت به صفحه اصلی
+          </a>
+        </div>
+
+      {% else %}
+        <div class="w-16 h-16 mx-auto rounded-full bg-rose-100 text-rose-800 flex items-center justify-center text-3xl font-bold">
+          ✕
+        </div>
+        <div class="space-y-1.5">
+          <h1 class="text-xl font-extrabold text-rose-900">
+            پرداخت انجام نشد یا تأیید نگردید
+          </h1>
+          <p class="text-xs text-stone-600 leading-relaxed">
+            {{ error_message|default:"تراکنش بانکی توسط کاربر لغو شد یا در استعلام سمت سرور تأیید نگردید." }}
+          </p>
+          <p class="text-[11px] text-stone-500">
+            چنانچه مبلغی از حساب بانکی شما کسر شده باشد، حداکثر ظرف ۷۲ ساعت توسط سیستم شاپرک به حساب شما بازگردانده می‌شود.
+          </p>
+        </div>
+
+        <div class="flex flex-wrap items-center justify-center gap-3 pt-2">
+          {% if order %}
+            <a
+              href="{% url 'storefront:account_order_detail' order_number=order.order_number %}"
+              class="px-6 py-3 rounded-xl bg-rose-900 hover:bg-rose-800 text-white font-bold text-xs"
+            >
+              مشاهده وضعیت سفارش {{ order.order_number }}
+            </a>
+          {% endif %}
+          <a
+            href="{% url 'storefront:account_orders' %}"
+            class="px-5 py-3 rounded-xl border border-stone-300 text-stone-700 font-semibold text-xs"
+          >
+            سفارش‌های من
+          </a>
+        </div>
+      {% endif %}
+
+    </div>
+  </div>
+{% endblock %}

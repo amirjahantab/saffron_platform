@@ -1,23 +1,33 @@
 {% load static saffron_tags %}
 <!DOCTYPE html>
-<html lang="fa" dir="rtl">
+<html lang="fa" dir="rtl" class="font-sans">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% block title %}{{ page_title|default:"فروشگاه تخصصی زعفران جهان‌تاب" }}{% endblock %}</title>
+  <title>{% block title %}{{ page_title|default:"فروشگاه تخصصی زعفران جهانتاب" }}{% endblock %}</title>
   <meta name="description" content="{% block meta_description %}خرید آنلاین زعفران سوپر نگین، نگین، سرگل، پوشال و دخترپیچ قائنات و خراسان همراه با برگه آزمایشگاهی ایزو ۳۶۳۲ و تضمین اصالت.{% endblock %}">
 
-  <!-- Vazirmatn Persian Font -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Shabnam Persian Font (Fast & Reliable jsDelivr CDN) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/shabnam-font@v5.0.1/dist/font-face.css">
 
-  <!-- Tailwind CSS -->
+  <!-- Tailwind CSS with Explicit Persian Font Configuration -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Shabnam', 'Tahoma', 'system-ui', 'sans-serif'],
+          }
+        }
+      }
+    };
+  </script>
+
   <link rel="stylesheet" href="{% static 'css/storefront.css' %}">
   {% block extra_head %}{% endblock %}
 </head>
-<body class="min-h-screen flex flex-col bg-stone-50 text-stone-900 antialiased">
+<body class="min-h-screen flex flex-col bg-stone-50 text-stone-900 font-sans antialiased">
 
   <!-- Accessible Skip to Main Content Link -->
   <a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:right-3 focus:z-50 focus:bg-rose-900 focus:text-white focus:px-4 focus:py-2 focus:rounded-lg">
@@ -25,7 +35,7 @@
   </a>
 
   <!-- Top Announcement Bar -->
-  <div class="bg-rose-950 text-amber-100 text-xs py-2 px-4 border-b border-rose-900">
+  <div class="bg-rose-950 text-amber-100 text-xs py-2.5 px-4 border-b border-rose-900">
     <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
       <p class="font-medium">
         ✨ عرضه مستقیم زعفران خالص خراسان همراه با گواهی آزمایشگاهی معتبر (ISO 3632-2) و کد رهگیری بچ برداشت

@@ -56,7 +56,7 @@ class PostalCodeAndShippingAddressTests(TestCase):
         user = User.objects.create_user(phone_number="09151112233")
         addr = ShippingAddress(
             user=user,
-            recipient_full_name="امیررضا جهان‌تاب",
+            recipient_full_name="امیررضا جهانتاب",
             recipient_phone="+98 915-111-2233",
             province="خراسان رضوی",
             city="مشهد",

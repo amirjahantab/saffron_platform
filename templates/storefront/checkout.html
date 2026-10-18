@@ -1,0 +1,296 @@
+{% extends "base.html" %}
+{% load saffron_tags %}
+
+{% block content %}
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <div class="pb-6 border-b border-stone-200">
+      <h1 class="text-2xl font-extrabold text-stone-900">تسویه‌حساب و اطلاعات ارسال</h1>
+      <p class="text-xs text-stone-600 mt-1">
+        پس از ثبت سفارش، موجودی زعفران‌های انتخابی به مدت ۱۵ دقیقه به نام شما رزرو شده و به درگاه پرداخت هدایت می‌شوید.
+      </p>
+    </div>
+
+    <form action="{% url 'storefront:checkout_page' %}" method="post" class="grid grid-cols-1 lg:grid-cols-12 gap-8 mt-6" novalidate>
+      {% csrf_token %}
+      <input type="hidden" name="idempotency_key" value="{{ idempotency_key }}">
+
+      <!-- Right Column: Recipient Address & Shipping Method -->
+      <div class="lg:col-span-8 space-y-6">
+
+        {% if form.non_field_errors %}
+          <div class="p-4 rounded-2xl bg-rose-50 border border-rose-300 text-rose-900 text-xs font-semibold" role="alert">
+            {% for err in form.non_field_errors %}
+              <p>• {{ err }}</p>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        <!-- Saved Shipping Addresses Selection (if user has saved addresses) -->
+        {% if saved_addresses %}
+          <section class="bg-white rounded-2xl border border-stone-200 p-6 shadow-sm space-y-4">
+            <h2 class="font-extrabold text-base text-stone-900 border-b border-stone-100 pb-3">
+              انتخاب آدرس گیرنده
+            </h2>
+
+            <div class="space-y-3">
+              {% for addr in saved_addresses %}
+                <label class="flex items-start gap-3 p-3.5 rounded-xl border border-stone-200 hover:border-rose-800 cursor-pointer bg-stone-50/50">
+                  <input
+                    type="radio"
+                    name="shipping_address_public_id"
+                    value="{{ addr.public_id }}"
+                    {% if form.shipping_address_public_id.value|stringformat:"s" == addr.public_id|stringformat:"s" %}checked{% endif %}
+                    class="mt-1 text-rose-900"
+                  >
+                  <div class="text-xs space-y-1">
+                    <span class="font-bold text-stone-900 block">
+                      {{ addr.recipient_full_name }} ({{ addr.recipient_phone|persian_digits }})
+                    </span>
+                    <span class="text-stone-600 block">
+                      {{ addr.province }}، {{ addr.city }} — {{ addr.address_line }}
+                    </span>
+                    <span class="text-stone-500 block">
+                      کد پستی: {{ addr.postal_code|persian_digits }}
+                    </span>
+                  </div>
+                </label>
+              {% endfor %}
+
+              <!-- Option to enter a new shipping address -->
+              <label class="flex items-center gap-3 p-3.5 rounded-xl border border-stone-200 hover:border-rose-800 cursor-pointer">
+                <input
+                  type="radio"
+                  name="shipping_address_public_id"
+                  value=""
+                  {% if not form.shipping_address_public_id.value %}checked{% endif %}
+                  class="text-rose-900"
+                >
+                <span class="text-xs font-bold text-rose-900">ارسال به یک آدرس جدید</span>
+              </label>
+            </div>
+          </section>
+        {% endif %}
+
+        <!-- New Recipient & Postal Address Fields -->
+        <section id="new-address-fields-container" class="bg-white rounded-2xl border border-stone-200 p-6 shadow-sm space-y-4">
+          <h2 class="font-extrabold text-base text-stone-900 border-b border-stone-100 pb-3">
+            مشخصات گیرنده و نشانی پستی
+          </h2>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label for="id_recipient_full_name" class="block text-xs font-bold text-stone-800 mb-1.5">
+                نام و نام خانوادگی گیرنده *
+              </label>
+              <input
+                id="id_recipient_full_name"
+                type="text"
+                name="recipient_full_name"
+                value="{{ form.recipient_full_name.value|default:'' }}"
+                placeholder="مثال: علی رضایی"
+                class="w-full text-xs border {% if form.recipient_full_name.errors %}border-rose-500 bg-rose-50/40{% else %}border-stone-300{% endif %} rounded-xl px-3.5 py-2.5"
+              >
+              {% for err in form.recipient_full_name.errors %}
+                <p class="mt-1 text-xs text-rose-700 font-medium">{{ err }}</p>
+              {% endfor %}
+            </div>
+
+            <div>
+              <label for="id_recipient_phone" class="block text-xs font-bold text-stone-800 mb-1.5">
+                شماره موبایل گیرنده *
+              </label>
+              <input
+                id="id_recipient_phone"
+                type="tel"
+                name="recipient_phone"
+                value="{{ form.recipient_phone.value|default:'' }}"
+                placeholder="۰۹۱۲۳۴۵۶۷۸۹"
+                class="w-full text-xs border {% if form.recipient_phone.errors %}border-rose-500 bg-rose-50/40{% else %}border-stone-300{% endif %} rounded-xl px-3.5 py-2.5"
+              >
+              {% for err in form.recipient_phone.errors %}
+                <p class="mt-1 text-xs text-rose-700 font-medium">{{ err }}</p>
+              {% endfor %}
+            </div>
+
+            <div>
+              <label for="id_province" class="block text-xs font-bold text-stone-800 mb-1.5">
+                استان *
+              </label>
+              <input
+                id="id_province"
+                type="text"
+                name="province"
+                value="{{ form.province.value|default:'' }}"
+                placeholder="مثال: خراسان رضوی"
+                class="w-full text-xs border {% if form.province.errors %}border-rose-500 bg-rose-50/40{% else %}border-stone-300{% endif %} rounded-xl px-3.5 py-2.5"
+              >
+              {% for err in form.province.errors %}
+                <p class="mt-1 text-xs text-rose-700 font-medium">{{ err }}</p>
+              {% endfor %}
+            </div>
+
+            <div>
+              <label for="id_city" class="block text-xs font-bold text-stone-800 mb-1.5">
+                شهر *
+              </label>
+              <input
+                id="id_city"
+                type="text"
+                name="city"
+                value="{{ form.city.value|default:'' }}"
+                placeholder="مثال: مشهد"
+                class="w-full text-xs border {% if form.city.errors %}border-rose-500 bg-rose-50/40{% else %}border-stone-300{% endif %} rounded-xl px-3.5 py-2.5"
+              >
+              {% for err in form.city.errors %}
+                <p class="mt-1 text-xs text-rose-700 font-medium">{{ err }}</p>
+              {% endfor %}
+            </div>
+          </div>
+
+          <div>
+            <label for="id_address_line" class="block text-xs font-bold text-stone-800 mb-1.5">
+              نشانی کامل پستی (خیابان، کوچه، پلاک، واحد) *
+            </label>
+            <textarea
+              id="id_address_line"
+              name="address_line"
+              rows="2"
+              placeholder="نشانی دقیق پستی جهت ارسال مرسوله..."
+              class="w-full text-xs border {% if form.address_line.errors %}border-rose-500 bg-rose-50/40{% else %}border-stone-300{% endif %} rounded-xl px-3.5 py-2.5"
+            >{{ form.address_line.value|default:'' }}</textarea>
+            {% for err in form.address_line.errors %}
+              <p class="mt-1 text-xs text-rose-700 font-medium">{{ err }}</p>
+            {% endfor %}
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+            <div>
+              <label for="id_postal_code" class="block text-xs font-bold text-stone-800 mb-1.5">
+                کد پستی ۱۰ رقمی (بدون خط تیره یا با خط تیره) *
+              </label>
+              <input
+                id="id_postal_code"
+                type="text"
+                name="postal_code"
+                value="{{ form.postal_code.value|default:'' }}"
+                placeholder="مثال: ۹۱۸۸۱۴۴۵۵۶"
+                class="w-full text-xs border {% if form.postal_code.errors %}border-rose-500 bg-rose-50/40{% else %}border-stone-300{% endif %} rounded-xl px-3.5 py-2.5"
+              >
+              {% for err in form.postal_code.errors %}
+                <p class="mt-1 text-xs text-rose-700 font-medium">{{ err }}</p>
+              {% endfor %}
+            </div>
+
+            <div class="pt-4">
+              <label class="inline-flex items-center gap-2 text-xs text-stone-700 cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="save_address"
+                  value="true"
+                  {% if form.save_address.value %}checked{% endif %}
+                  class="rounded text-rose-900"
+                >
+                <span>ذخیره این نشانی در دفترچه آدرس‌های من</span>
+              </label>
+            </div>
+          </div>
+        </section>
+
+        <!-- Shipping Method & Customer Note -->
+        <section class="bg-white rounded-2xl border border-stone-200 p-6 shadow-sm space-y-4">
+          <h2 class="font-extrabold text-base text-stone-900 border-b border-stone-100 pb-3">
+            روش ارسال و توضیحات تکمیلی
+          </h2>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label for="id_shipping_method" class="block text-xs font-bold text-stone-800 mb-1.5">
+                نحوه ارسال مرسوله:
+              </label>
+              <select
+                id="id_shipping_method"
+                name="shipping_method"
+                class="w-full text-xs border border-stone-300 rounded-xl px-3.5 py-2.5 bg-white"
+              >
+                {% for code, label in shipping_methods %}
+                  <option value="{{ code }}" {% if form.shipping_method.value == code %}selected{% endif %}>
+                    {{ label }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div>
+              <label for="id_customer_note" class="block text-xs font-bold text-stone-800 mb-1.5">
+                توضیحات سفارش (اختیاری):
+              </label>
+              <input
+                id="id_customer_note"
+                type="text"
+                name="customer_note"
+                value="{{ form.customer_note.value|default:'' }}"
+                placeholder="مثال: بسته‌بندی کادویی یا زمان تحویل..."
+                class="w-full text-xs border border-stone-300 rounded-xl px-3.5 py-2.5"
+              >
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Left Column: Authoritative Order Review & Submit -->
+      <aside class="lg:col-span-4">
+        <div class="bg-white rounded-2xl border border-stone-200 p-6 shadow-sm space-y-4 sticky top-24">
+          <h2 class="font-extrabold text-base text-stone-900 border-b border-stone-100 pb-3">
+            مرور اقلام و مبلغ نهایی
+          </h2>
+
+          <ul class="divide-y divide-stone-100 text-xs max-h-60 overflow-y-auto">
+            {% for item in cart.items %}
+              <li class="py-2.5 flex items-center justify-between gap-2">
+                <div>
+                  <span class="font-bold text-stone-800 block">{{ item.product_name }}</span>
+                  <span class="text-stone-500">{{ item.weight_label }} × {{ item.quantity|persian_digits }} عدد</span>
+                </div>
+                <span class="font-bold text-stone-900 whitespace-nowrap">
+                  {{ item.pricing.formatted_line_effective_total_toman }}
+                </span>
+              </li>
+            {% endfor %}
+          </ul>
+
+          <dl class="space-y-2.5 text-xs border-t border-stone-200 pt-3">
+            <div class="flex justify-between text-stone-600">
+              <dt>جمع قیمت پایه:</dt>
+              <dd>{{ cart.pricing.formatted_subtotal_base_toman }}</dd>
+            </div>
+            {% if cart.pricing.total_discount_rial > 0 %}
+              <div class="flex justify-between text-emerald-700 font-semibold">
+                <dt>مجموع تخفیف:</dt>
+                <dd>{{ cart.pricing.formatted_total_discount_toman }}</dd>
+              </div>
+            {% endif %}
+            <div class="flex justify-between text-stone-600">
+              <dt>هزینه ارسال:</dt>
+              <dd class="font-bold">{{ preview.formatted_shipping_cost_toman }}</dd>
+            </div>
+            <div class="border-t border-stone-200 pt-3 flex items-center justify-between text-sm">
+              <dt class="font-extrabold text-stone-900">مبلغ قابل پرداخت:</dt>
+              <dd class="text-lg font-extrabold text-rose-900">
+                {{ preview.formatted_final_payable_toman }}
+              </dd>
+            </div>
+          </dl>
+
+          <button
+            type="submit"
+            class="w-full py-3.5 px-4 rounded-xl bg-rose-900 hover:bg-rose-800 text-white font-extrabold text-sm shadow-sm transition-colors"
+          >
+            ثبت قطعی سفارش و رزرو موجودی
+          </button>
+        </div>
+      </aside>
+    </form>
+
+  </div>
+{% endblock %}
