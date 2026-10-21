@@ -58,6 +58,9 @@ class OrderItemInline(admin.TabularInline):
     model = OrderItem
     extra = 0
     can_delete = False
+
+    def has_add_permission(self, request, obj=None):
+        return False
     readonly_fields = (
         "public_id",
         "variant",
@@ -92,6 +95,9 @@ class StockReservationInline(admin.TabularInline):
     model = StockReservation
     extra = 0
     can_delete = False
+
+    def has_add_permission(self, request, obj=None):
+        return False
     readonly_fields = (
         "public_id",
         "variant",
@@ -141,6 +147,38 @@ class OrderAdmin(admin.ModelAdmin):
     def display_payable_toman(self, obj: Order) -> str:
         return obj.formatted_payable_toman
 
+    def get_readonly_fields(self, request, obj=None):
+        return tuple(field.name for field in self.model._meta.fields if field.name != "tracking_code")
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    actions = ["prepare", "ship", "deliver"]
+
+    def _transition(self, request, queryset, target):
+        from .services.reservation_service import OrderStateAndReservationService
+        from .exceptions import OrderError
+        for order in queryset:
+            try:
+                OrderStateAndReservationService.transition_order_status(order, target, tracking_code=order.tracking_code)
+            except OrderError:
+                self.message_user(request, f"وضعیت سفارش {order.order_number} اجازه این تغییر را نمی‌دهد.", level="error")
+
+    @admin.action(description="آماده‌سازی سفارش‌های پرداخت‌شده")
+    def prepare(self, request, queryset):
+        self._transition(request, queryset, "processing")
+
+    @admin.action(description="ثبت ارسال (ابتدا کد رهگیری را وارد کنید)")
+    def ship(self, request, queryset):
+        self._transition(request, queryset, "shipped")
+
+    @admin.action(description="ثبت تحویل به مشتری")
+    def deliver(self, request, queryset):
+        self._transition(request, queryset, "delivered")
+
 
 @admin.register(StockReservation)
 class StockReservationAdmin(admin.ModelAdmin):
@@ -155,4 +193,10 @@ class StockReservationAdmin(admin.ModelAdmin):
     )
     list_filter = ("status", "expires_at")
     search_fields = ("order__order_number", "variant__sku")
-    readonly_fields = ("public_id", "created_at", "updated_at")
+    readonly_fields = tuple(field.name for field in StockReservation._meta.fields)
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False

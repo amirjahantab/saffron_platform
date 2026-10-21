@@ -169,6 +169,10 @@ class LabCertificate(TimeStampedModel, UUIDModel):
     Official laboratory analysis certificate and authenticity document attached to a HarvestBatch.
     """
 
+    def get_download_url(self):
+        from django.urls import reverse
+        return reverse("catalog:certificate", args=[self.public_id])
+
     harvest_batch = models.ForeignKey(
         HarvestBatch,
         on_delete=models.PROTECT,

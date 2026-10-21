@@ -1,127 +1,13 @@
-{% load saffron_tags %}
-<header class="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-stone-200 shadow-sm">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-
-    <!-- Row 1: Brand Identity, Search Bar & User/Cart Actions -->
-    <div class="flex flex-wrap items-center justify-between py-3.5 gap-4">
-
-      <!-- Brand Logo & Title (Protected from shrinking/wrapping) -->
-      <a href="{% url 'storefront:home' %}" class="flex items-center gap-3 shrink-0 group">
-        <span class="w-11 h-11 rounded-xl bg-gradient-to-br from-rose-800 to-amber-600 flex items-center justify-center text-white font-extrabold text-xl shadow-sm shrink-0">
-          ز
-        </span>
-        <div class="leading-tight whitespace-nowrap">
-          <span class="block font-extrabold text-base sm:text-lg text-stone-900 group-hover:text-rose-800 transition-colors">
-            زعفران جهانتاب
-          </span>
-          <span class="block text-[11px] text-stone-500 mt-1">
-            اصالت آزمایش‌شده از مزارع خراسان
-          </span>
-        </div>
-      </a>
-
-      <!-- Center Quick Search Form -->
-      <form
-        action="{% url 'storefront:product_list' %}"
-        method="get"
-        role="search"
-        class="hidden md:flex items-center flex-1 max-w-md mx-4"
-      >
-        <label for="nav-search-input" class="sr-only">جست‌وجوی زعفران</label>
-        <input
-          id="nav-search-input"
-          type="search"
-          name="q"
-          value="{{ search_query|default:'' }}"
-          placeholder="جست‌وجوی نوع، وزن یا بسته‌بندی زعفران..."
-          class="w-full text-xs bg-stone-100 border border-stone-200 rounded-r-xl px-3.5 py-2.5 focus:bg-white transition-colors"
-        >
-        <button
-          type="submit"
-          class="bg-stone-800 hover:bg-stone-900 text-white text-xs px-4 py-2.5 rounded-l-xl font-bold shrink-0 whitespace-nowrap transition-colors"
-        >
-          جست‌وجو
-        </button>
-      </form>
-
-      <!-- Account & Authoritative Live Cart Actions -->
-      <div class="flex items-center gap-2.5 shrink-0">
-        {% if request.user.is_authenticated %}
-          <div class="flex items-center gap-1.5 shrink-0">
-            <a
-              href="{% url 'storefront:account_orders' %}"
-              class="inline-flex items-center gap-1.5 text-xs font-bold px-3.5 py-2.5 rounded-xl border border-stone-200 hover:border-stone-300 text-stone-800 bg-stone-50 whitespace-nowrap transition-colors"
-            >
-              <span>حساب من</span>
-              <span class="text-stone-500 font-normal hidden sm:inline">({{ request.user.phone_number|persian_digits }})</span>
-            </a>
-            <form action="{% url 'storefront:logout_page' %}" method="post" class="inline shrink-0">
-              {% csrf_token %}
-              <button
-                type="submit"
-                class="text-xs font-semibold px-3 py-2.5 rounded-xl border border-stone-200 text-stone-500 hover:text-rose-800 hover:border-rose-200 whitespace-nowrap transition-colors"
-                title="خروج از حساب کاربری"
-              >
-                خروج
-              </button>
-            </form>
-          </div>
-        {% else %}
-          <a
-            href="{% url 'storefront:login_page' %}"
-            class="inline-flex items-center gap-1.5 text-xs font-bold px-4 py-2.5 rounded-xl border border-stone-300 hover:border-rose-800 text-stone-800 hover:text-rose-900 whitespace-nowrap transition-colors shrink-0"
-          >
-            <span>ورود / ثبت‌نام</span>
-          </a>
-        {% endif %}
-
-        <!-- Live Cart Summary Button -->
-        <a
-          href="{% url 'storefront:cart_page' %}"
-          class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-rose-900 hover:bg-rose-800 text-white text-xs font-bold shadow-sm whitespace-nowrap transition-colors shrink-0"
-          aria-label="مشاهده سبد خرید"
-        >
-          <span>سبد خرید</span>
-          <span id="nav-cart-count" class="px-2 py-0.5 rounded-full bg-amber-400 text-stone-950 font-extrabold text-xs leading-none">
-            {{ nav_cart.total_units_count|default:0|persian_digits }}
-          </span>
-          <span id="nav-cart-payable" class="hidden sm:inline text-xs text-amber-100 border-r border-rose-700 pr-2.5">
-            {{ nav_cart.pricing.formatted_payable_toman }}
-          </span>
-        </a>
-      </div>
-
-    </div>
-
-    <!-- Row 2: Category & Saffron Grades Navigation Bar -->
-    <nav
-      aria-label="منوی اصلی فروشگاه"
-      class="flex items-center justify-between border-t border-stone-100 py-2.5 gap-4 overflow-x-auto"
-    >
-      <div class="flex items-center gap-6 text-xs sm:text-sm font-medium text-stone-700 whitespace-nowrap">
-        <a href="{% url 'storefront:home' %}" class="hover:text-rose-800 transition-colors">
-          صفحه اصلی
-        </a>
-        <a href="{% url 'storefront:product_list' %}" class="hover:text-rose-800 transition-colors font-bold text-rose-900">
-          همه محصولات
-        </a>
-        {% for grade in nav_saffron_grades %}
-          <a
-            href="{% url 'storefront:product_list' %}?grade={{ grade.code }}"
-            class="hover:text-rose-800 transition-colors"
-          >
-            زعفران {{ grade.label }}
-          </a>
-        {% endfor %}
-      </div>
-
-      <a
-        href="{% url 'storefront:product_list' %}?sale_type=wholesale"
-        class="px-3 py-1 rounded-lg bg-amber-50 text-amber-900 border border-amber-200 hover:bg-amber-100 text-xs font-extrabold whitespace-nowrap shrink-0 transition-colors"
-      >
-        فروش عمده و سازمانی
-      </a>
-    </nav>
-
+{% load static saffron_tags design_tags %}
+<header class="site-header">
+  <div class="site-shell header-main">
+    <a href="{% url 'storefront:home' %}" class="brand" aria-label="جهانتاب، صفحه اصلی">
+      <img src="{% static 'images/brand-mark.svg' %}" width="43" height="50" alt=""><span><strong>جهانتاب<span class="brand-dot">.</span></strong><small>رشته‌ای از طبیعت، روایتی از ایران</small></span>
+    </a>
+    <form action="{% url 'storefront:product_list' %}" method="get" role="search" class="header-search">
+      {% icon 'search' %}<label class="sr-only" for="nav-search-input">جست‌وجوی زعفران</label><input id="nav-search-input" type="search" name="q" placeholder="به دنبال چه زعفرانی هستید؟" value="{{ search_query|default:'' }}" maxlength="100"><button type="submit" aria-label="جست‌وجو">جست‌وجو</button>
+    </form>
+    <div class="header-actions">{% if request.user.is_authenticated %}<details class="account-menu"><summary class="account-link">{% icon 'user' %}<span>حساب من</span></summary><div class="account-dropdown"><a href="{% url 'storefront:account_orders' %}">سفارش‌های من</a><a href="{% url 'care:inbox' %}">گفتگوهای پشتیبانی</a><a href="{% url 'insights:preferences' %}">ترجیحات و حریم خصوصی</a><form method="post" action="{% url 'storefront:logout_page' %}">{% csrf_token %}<button type="submit">خروج از حساب</button></form></div></details>{% else %}<a class="account-link" href="{% url 'storefront:login_page' %}">{% icon 'user' %}<span>ورود / ثبت‌نام</span></a>{% endif %}<span id="nav-cart-payable" class="bag-total">{{ nav_cart.pricing.formatted_payable_toman }}</span><span class="header-divider"></span><a class="bag-link" href="{% url 'storefront:cart_page' %}" aria-label="سبد خرید">{% icon 'bag' %}<span class="cart-count js-nav-cart-count" id="nav-cart-count">{{ nav_cart.total_units_count|default:0|persian_digits }}</span></a></div>
   </div>
+  <div class="header-navigation"><nav class="site-shell nav-links" aria-label="ناوبری اصلی"><a href="{% url 'storefront:product_list' %}" class="nav-shop">{% icon 'leaf' %} فروشگاه زعفران</a>{% for grade in nav_saffron_grades %}<a href="{% url 'storefront:category' grade=grade.code %}">{{ grade.label }}</a>{% endfor %}<a href="{% url 'content:journal' %}">مجله جهانتاب</a><a href="{% url 'care:inbox' %}">پشتیبانی</a><a href="{% url 'assistant:page' %}" class="nav-guide">راهنمای انتخاب {% icon 'arrow' %}</a></nav></div>
 </header>

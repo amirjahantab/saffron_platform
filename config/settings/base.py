@@ -4,6 +4,7 @@ Common configuration shared across development, test, and production environment
 """
 import os
 from pathlib import Path
+from urllib.parse import urlsplit
 from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -43,6 +44,7 @@ DJANGO_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django.contrib.humanize",
+    "django.contrib.sitemaps",
 ]
 
 THIRD_PARTY_APPS: list[str] = []
@@ -54,6 +56,10 @@ LOCAL_APPS = [
     "apps.orders.apps.OrdersConfig",
     "apps.payments.apps.PaymentsConfig",
     "apps.storefront.apps.StorefrontConfig",
+    "apps.content.apps.ContentConfig",
+    "apps.care.apps.CareConfig",
+    "apps.insights.apps.InsightsConfig",
+    "apps.assistant.apps.AssistantConfig",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -63,10 +69,13 @@ AUTH_USER_MODEL = "accounts.User"
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "apps.storefront.middleware.SearchIndexingMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "apps.core.middleware.SensitiveActionMiddleware",
+    "apps.insights.middleware.AnalyticsMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -172,6 +181,38 @@ CURRENCY_STORAGE_UNIT = "IRR"
 CURRENCY_DISPLAY_UNIT = "IRT"
 RIAL_TO_TOMAN_FACTOR = 10
 
+NOTIFICATIONS_ENABLED = get_env_bool("NOTIFICATIONS_ENABLED", False)
+DEMO_MODE = get_env_bool("DEMO_MODE", False)
+STORE_OPEN = get_env_bool("STORE_OPEN", False)
+ALLOW_SANDBOX_PAYMENTS = False
+ENABLE_ACTION_LIMITS = True
+ACTION_LIMITS = {
+    "storefront:cart_add": (60, 60), "storefront:cart_update": (60, 60),
+    "orders:cart_add_item": (60, 60), "orders:cart_update_item": (60, 60),
+    "storefront:checkout_page": (20, 3600), "orders:checkout": (20, 3600),
+    "storefront:account_order_pay": (20, 3600), "payments:payment_initiate": (20, 3600),
+}
+TRUST_PROXY_HEADERS = get_env_bool("TRUST_PROXY_HEADERS", False)
+ASSISTANT_ENABLED = get_env_bool("ASSISTANT_ENABLED", False)
+OPENAI_API_KEY = get_env_variable("OPENAI_API_KEY", "")
+OPENAI_MODEL = get_env_variable("OPENAI_MODEL", "")
+ASSISTANT_HOURLY_LIMIT = int(get_env_variable("ASSISTANT_HOURLY_LIMIT", "10"))
+ASSISTANT_DAILY_TOKEN_BUDGET = int(get_env_variable("ASSISTANT_DAILY_TOKEN_BUDGET", "100000"))
+ANALYTICS_RETENTION_DAYS = int(get_env_variable("ANALYTICS_RETENTION_DAYS", "90"))
+MESSAGE_RETENTION_DAYS = int(get_env_variable("MESSAGE_RETENTION_DAYS", "90"))
+SUPPORT_RETENTION_DAYS = int(get_env_variable("SUPPORT_RETENTION_DAYS", "365"))
+KAVENEGAR_API_KEY = get_env_variable("KAVENEGAR_API_KEY", "")
+KAVENEGAR_OTP_TEMPLATE = get_env_variable("KAVENEGAR_OTP_TEMPLATE", "")
+KAVENEGAR_SENDER = get_env_variable("KAVENEGAR_SENDER", "")
+
+# Canonical origin must be configured independently from request Host headers.
+SITE_URL = get_env_variable("SITE_URL", default="http://127.0.0.1:8000").rstrip("/")
+_site_origin = urlsplit(SITE_URL)
+if (_site_origin.scheme not in {"http", "https"} or not _site_origin.netloc
+        or _site_origin.path or _site_origin.query or _site_origin.fragment
+        or _site_origin.username or _site_origin.password):
+    raise ImproperlyConfigured("SITE_URL must be an absolute HTTP(S) origin without credentials or a path.")
+
 # OTP & SMS Authentication Settings (Phase 2)
 OTP_CODE_LENGTH = int(get_env_variable("OTP_CODE_LENGTH", default="6"))
 OTP_EXPIRY_SECONDS = int(get_env_variable("OTP_EXPIRY_SECONDS", default="120"))
@@ -200,7 +241,7 @@ ORDER_FREE_SHIPPING_THRESHOLD_RIAL = int(
 PAYMENT_DEFAULT_GATEWAY = get_env_variable("PAYMENT_DEFAULT_GATEWAY", default="sandbox")
 PAYMENT_CALLBACK_BASE_URL = get_env_variable(
     "PAYMENT_CALLBACK_BASE_URL",
-    default="http://127.0.0.1:8000",
+    default=SITE_URL,
 ).rstrip("/")
 PAYMENT_RELEASE_RESERVATION_ON_FAILURE = get_env_bool(
     "PAYMENT_RELEASE_RESERVATION_ON_FAILURE",

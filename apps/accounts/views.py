@@ -26,15 +26,8 @@ from apps.accounts.validators import mask_phone_number
 
 
 def _extract_client_ip(request: HttpRequest) -> str:
-    """
-    Extract client IP safely.
-    Uses REMOTE_ADDR by default; only trusts X-Forwarded-For when SECURE_PROXY_SSL_HEADER is active.
-    """
-    if getattr(settings, "USE_X_FORWARDED_HOST", False):
-        xff = request.META.get("HTTP_X_FORWARDED_FOR")
-        if xff:
-            return xff.split(",")[0].strip()
-    return request.META.get("REMOTE_ADDR") or "unknown"
+    from apps.core.client_ip import client_ip
+    return client_ip(request)
 
 
 def _parse_request_data(request: HttpRequest) -> dict[str, Any]:

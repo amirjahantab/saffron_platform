@@ -159,6 +159,8 @@ class CartService:
                 existing_item.quantity = new_quantity
                 existing_item.save(update_fields=["quantity", "updated_at"])
                 cart.save(update_fields=["updated_at"])
+                from apps.insights.services import record
+                record(request, "add_to_cart", variant.product)
                 return existing_item
 
             new_item = CartItem.objects.create(
@@ -167,6 +169,8 @@ class CartService:
                 quantity=new_quantity,
             )
             cart.save(update_fields=["updated_at"])
+            from apps.insights.services import record
+            record(request, "add_to_cart", variant.product)
             return new_item
 
     @classmethod

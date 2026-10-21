@@ -1,0 +1,44 @@
+{
+  "completion-tests.log": {
+    "tests": 154,
+    "seconds": 5.07,
+    "passed": true
+  },
+  "completion-postgres-tests.log": {
+    "tests": 154,
+    "seconds": 11.251,
+    "passed": true
+  },
+  "browser": {
+    "passed": true,
+    "viewports": [
+      [
+        320,
+        740
+      ],
+      [
+        390,
+        844
+      ],
+      [
+        1440,
+        1000
+      ]
+    ]
+  },
+  "completion-python-audit.json": {
+    "known_vulnerable_packages": 0
+  },
+  "completion-production-audit.json": {
+    "known_vulnerable_packages": 0
+  },
+  "npm_audit": {
+    "info": 0,
+    "low": 0,
+    "moderate": 0,
+    "high": 0,
+    "critical": 0,
+    "total": 0
+  },
+  "deployment": "Verified local HTTPS only; public launch blocked pending real domain, providers and business facts."
+}

@@ -249,6 +249,9 @@ def checkout_view(request: HttpRequest) -> JsonResponse:
             customer_note=cleaned.get("customer_note") or "",
             idempotency_key=cleaned.get("idempotency_key"),
         )
+        from apps.insights.services import attach_order
+        attach_order(request, order)
+
     except InsufficientStockError as exc:
         return JsonResponse(
             {

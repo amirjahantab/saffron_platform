@@ -1,5 +1,6 @@
 """URL routing for Storefront HTML pages (Sub-phases 6.1 & 6.2)."""
 from django.urls import path
+from . import guest_views
 from apps.storefront.views import (
     account_order_detail_view,
     account_orders_view,
@@ -23,9 +24,12 @@ from apps.storefront.views import (
 app_name = "storefront"
 
 urlpatterns = [
+    path("checkout/guest/", guest_views.checkout, name="guest_checkout"),
+    path("guest/orders/<str:order_number>/", guest_views.order_page, name="guest_order"),
     # Catalog & Product Pages (Sub-phase 6.1)
     path("", home_page_view, name="home"),
     path("shop/", product_list_page_view, name="product_list"),
+    path("shop/category/<str:grade>/", product_list_page_view, name="category"),
     path("shop/<str:slug>/", product_detail_page_view, name="product_detail"),
 
     # Shopping Cart Pages & Form Actions (Sub-phase 6.2)

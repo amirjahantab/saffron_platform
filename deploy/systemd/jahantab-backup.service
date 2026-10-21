@@ -1,0 +1,11 @@
+[Unit]
+Description=Jahantab database and media backup
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+User=deploy
+WorkingDirectory=/opt/jahantab
+ExecStart=/usr/bin/docker compose --env-file .env.production -f compose.production.yml run --rm backup
+TimeoutStartSec=15min

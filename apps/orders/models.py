@@ -278,9 +278,11 @@ class Order(TimeStampedModel, UUIDModel):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
+        null=True, blank=True,
         related_name="orders",
         verbose_name=_("مشتری"),
     )
+    guest_access_hash = models.CharField(max_length=64, blank=True, editable=False)
     source_cart = models.ForeignKey(
         Cart,
         on_delete=models.SET_NULL,
@@ -416,6 +418,8 @@ class Order(TimeStampedModel, UUIDModel):
         verbose_name_plural = _("سفارش‌ها")
         ordering = ["-created_at"]
         constraints = [
+            models.CheckConstraint(condition=Q(user__isnull=False) | ~Q(guest_access_hash=""), name="order_has_account_or_guest_secret"),
+            models.UniqueConstraint(fields=["source_cart"], condition=Q(user__isnull=True, source_cart__isnull=False), name="one_guest_order_per_cart"),
             models.UniqueConstraint(
                 fields=["user", "idempotency_key"],
                 condition=Q(idempotency_key__isnull=False),

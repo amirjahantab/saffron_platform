@@ -2,7 +2,8 @@
 Read-only catalog endpoints serving real database records for products, variants,
 harvest traceability, and verified laboratory metrics.
 """
-from django.db.models import Prefetch
+from django.db.models import Prefetch, Q
+from django.utils import timezone
 from django.http import HttpRequest, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_GET
@@ -108,7 +109,7 @@ def product_detail_view(request: HttpRequest, slug: str) -> JsonResponse:
     harvest batch traceability, and verified laboratory certificates/metrics.
     """
     verified_certs_qs = (
-        LabCertificate.objects.filter(is_verified=True)
+        LabCertificate.objects.filter(is_verified=True).filter(Q(expiry_date__isnull=True) | Q(expiry_date__gte=timezone.localdate()))
         .prefetch_related(
             Prefetch(
                 "metrics",
@@ -172,7 +173,7 @@ def product_detail_view(request: HttpRequest, slug: str) -> JsonResponse:
                     "expiry_date": cert.expiry_date.isoformat() if cert.expiry_date else None,
                     "standard_reference": cert.standard_reference,
                     "quality_grade_result": cert.quality_grade_result,
-                    "document_url": cert.document_file.url if cert.document_file else None,
+                    "document_url": cert.get_download_url() if cert.document_file else None,
                     "metrics": metrics_payload,
                 }
             )

@@ -1,0 +1,10 @@
+[Unit]
+Description=Daily Jahantab backup (Tehran time)
+
+[Timer]
+OnCalendar=*-*-* 03:00:00 Asia/Tehran
+Persistent=true
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target

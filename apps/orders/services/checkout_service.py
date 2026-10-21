@@ -12,6 +12,7 @@ Enforces:
 from datetime import timedelta
 from decimal import Decimal
 import logging
+from apps.orders.access import token_digest
 from typing import Any
 from uuid import UUID
 from django.conf import settings
@@ -109,7 +110,7 @@ class CheckoutService:
                 code="incomplete_address",
             )
 
-        if save_new_address:
+        if save_new_address and user is not None:
             has_existing = ShippingAddress.objects.filter(user=user).exists()
             new_addr = ShippingAddress(
                 user=user,
@@ -137,13 +138,15 @@ class CheckoutService:
     def create_order_from_cart(
         cls,
         *,
-        user: User,
+        user: User | None,
         shipping_address_public_id: UUID | str | None = None,
         address_data: dict[str, Any] | None = None,
         save_new_address: bool = False,
         shipping_method: str = Order.ShippingMethod.POST_PISHTAZ,
         customer_note: str = "",
         idempotency_key: str | None = None,
+        guest_cart: Cart | None = None,
+        guest_token: str | None = None,
     ) -> tuple[Order, bool]:
         """
         Atomically convert the authenticated user's active Cart into an Order.
@@ -157,12 +160,16 @@ class CheckoutService:
 
         with transaction.atomic():
             # 2. Lock the User row to serialize concurrent checkout attempts by the same user
-            locked_user = User.objects.select_for_update().get(pk=user.pk)
+            locked_user = User.objects.select_for_update().get(pk=user.pk) if user is not None else None
+            if locked_user is None and (guest_cart is None or not guest_token or len(guest_token) < 32):
+                raise EmptyCartCheckoutError("نشست خرید مهمان معتبر نیست.")
+            if locked_user is None:
+                guest_cart = Cart.objects.select_for_update().get(pk=guest_cart.pk, user__isnull=True)
 
             # 3. Check idempotency key inside the user lock
             if cleaned_idem_key:
                 existing_order = (
-                    Order.objects.filter(user=locked_user, idempotency_key=cleaned_idem_key)
+                    Order.objects.filter(user=locked_user, idempotency_key=cleaned_idem_key, **({"source_cart": guest_cart} if locked_user is None else {}))
                     .prefetch_related("items", "reservations")
                     .first()
                 )
@@ -170,17 +177,16 @@ class CheckoutService:
                     logger.info(
                         "Idempotent checkout hit: returning existing order=%s for user_id=%s",
                         existing_order.order_number,
-                        locked_user.pk,
+                        locked_user.pk if locked_user else None,
                     )
                     return existing_order, False
 
             # 4. Lock the user's active Cart
-            cart = (
-                Cart.objects.select_for_update()
-                .filter(user=locked_user, status=Cart.Status.ACTIVE)
-                .first()
-            )
-            if cart is None:
+            if locked_user is None:
+                cart = guest_cart if guest_cart.status == Cart.Status.ACTIVE else None
+            else:
+                cart = Cart.objects.select_for_update().filter(user=locked_user, status=Cart.Status.ACTIVE).first()
+            if cart is None or (locked_user is None and cart.pk != guest_cart.pk):
                 raise EmptyCartCheckoutError(_("سبد خرید فعالی برای ثبت سفارش وجود ندارد."))
 
             cart_items = list(cart.items.order_by("variant_id"))
@@ -247,6 +253,7 @@ class CheckoutService:
             # 8. Create the authoritative Order record
             order = Order(
                 user=locked_user,
+                guest_access_hash=token_digest(guest_token) if locked_user is None else "",
                 source_cart=cart,
                 idempotency_key=cleaned_idem_key,
                 status=Order.Status.PENDING_PAYMENT,
@@ -313,7 +320,7 @@ class CheckoutService:
             logger.info(
                 "Order created successfully: order_number=%s user_id=%s payable_rial=%d",
                 order.order_number,
-                locked_user.pk,
+                locked_user.pk if locked_user else None,
                 order.payable_rial,
             )
             return order, True

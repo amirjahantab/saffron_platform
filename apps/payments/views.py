@@ -23,6 +23,21 @@ from apps.payments.forms import PaymentInitiateForm, PaymentRefundForm
 from apps.payments.services.payment_service import PaymentService
 
 
+def _callback_response(request, provider, payload, status=200):
+    if "text/html" in request.headers.get("Accept", ""):
+        from django.shortcuts import render, redirect
+        from django.urls import reverse
+        from urllib.parse import urlencode
+        if status == 200:
+            parameters = {
+                "Authority": request.GET.get("Authority") or request.GET.get("authority") or request.POST.get("Authority") or request.POST.get("authority") or "",
+                "Status": request.GET.get("Status") or request.GET.get("status") or request.POST.get("Status") or request.POST.get("status") or "",
+            }
+            return redirect(reverse("storefront:payment_result_page", args=[provider])+"?"+urlencode(parameters))
+        return render(request, "storefront/payment_result.html", {"page_title": "نتیجه پرداخت", "error_message": payload.get("message", "پرداخت تأیید نشد."), "is_success": False}, status=status)
+    return JsonResponse(payload, status=status)
+
+
 def _parse_request_payload(request: HttpRequest) -> dict[str, Any]:
     """Parse JSON or form-urlencoded POST payload safely."""
     content_type = request.content_type or ""
@@ -151,7 +166,7 @@ def payment_callback_view(request: HttpRequest, provider: str) -> JsonResponse:
             callback_status_param=callback_status,
         )
     except PaymentGatewayCommunicationError as exc:
-        return JsonResponse(
+        return _callback_response(request, provider, 
             {
                 "status": "error",
                 "code": exc.code,
@@ -160,7 +175,7 @@ def payment_callback_view(request: HttpRequest, provider: str) -> JsonResponse:
             status=503,
         )
     except PaymentVerificationFailedError as exc:
-        return JsonResponse(
+        return _callback_response(request, provider, 
             {
                 "status": "error",
                 "code": exc.code,
@@ -169,7 +184,7 @@ def payment_callback_view(request: HttpRequest, provider: str) -> JsonResponse:
             status=400,
         )
     except PaymentError as exc:
-        return JsonResponse(
+        return _callback_response(request, provider, 
             {
                 "status": "error",
                 "code": exc.code,
@@ -178,7 +193,10 @@ def payment_callback_view(request: HttpRequest, provider: str) -> JsonResponse:
             status=400,
         )
 
-    return JsonResponse(
+    from apps.orders.access import owns_order
+    if not owns_order(request, tx.order):
+        return _callback_response(request, provider, {"status": "ok", "already_processed": already_processed, "message": "نتیجه پرداخت پردازش شد؛ رسید فقط برای صاحب سفارش قابل مشاهده است."})
+    return _callback_response(request, provider, 
         {
             "status": "ok",
             "already_processed": already_processed,
@@ -242,7 +260,7 @@ def order_payment_refund_view(request: HttpRequest, order_number: str) -> JsonRe
         return auth_err
 
     user: User = request.user  # type: ignore[assignment]
-    if not user.is_staff:
+    if not user.is_staff or not user.has_perm("payments.change_paymentrefund"):
         return JsonResponse(
             {
                 "status": "error",

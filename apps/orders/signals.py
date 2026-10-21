@@ -18,6 +18,9 @@ def handle_guest_cart_merge_on_otp_login(
     **kwargs: Any,
 ) -> None:
     """Automatically merge any active guest cart into the authenticated user's cart."""
+    if user.is_phone_verified:
+        from .models import Order
+        Order.objects.filter(user__isnull=True, recipient_phone=user.phone_number).update(user=user, guest_access_hash="")
     if pre_login_session_key:
         CartService.merge_guest_cart_into_user_cart(
             user=user,

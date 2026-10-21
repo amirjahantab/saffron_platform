@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load saffron_tags %}
+{% load saffron_tags image_tags %}
 
 {% block content %}
   <!-- Safe JSON Data for Interactive Variant & Lab Certificate Switching -->
@@ -8,21 +8,7 @@
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
     <!-- Breadcrumb -->
-    <nav aria-label="مسیر راهنما" class="text-xs text-stone-500 mb-6">
-      <ol class="flex flex-wrap items-center gap-2">
-        <li><a href="{% url 'storefront:home' %}" class="hover:text-rose-800">صفحه اصلی</a></li>
-        <li>/</li>
-        <li><a href="{% url 'storefront:product_list' %}" class="hover:text-rose-800">کاتالوگ محصولات</a></li>
-        <li>/</li>
-        <li>
-          <a href="{% url 'storefront:product_list' %}?grade={{ product.saffron_grade }}" class="hover:text-rose-800">
-            زعفران {{ product.get_saffron_grade_display }}
-          </a>
-        </li>
-        <li>/</li>
-        <li class="text-stone-900 font-semibold">{{ product.name }}</li>
-      </ol>
-    </nav>
+    {% include "components/_breadcrumbs.html" %}
 
     <!-- Main Product Showcase -->
     <div class="bg-white rounded-3xl border border-stone-200 shadow-sm p-6 sm:p-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -31,12 +17,7 @@
       <div class="lg:col-span-5 space-y-4">
         <div class="aspect-square rounded-2xl bg-stone-100 border border-stone-200 overflow-hidden flex items-center justify-center">
           {% if primary_image and primary_image.image %}
-            <img
-              id="main-product-image"
-              src="{{ primary_image.image.url }}"
-              alt="{{ primary_image.alt_text }}"
-              class="w-full h-full object-cover"
-            >
+            {% product_image primary_image hero=True %}
           {% else %}
             <div class="p-8 text-center bg-gradient-to-br from-rose-50 to-amber-50 w-full h-full flex flex-col items-center justify-center">
               <span class="text-3xl font-extrabold text-rose-900 mb-2">{{ product.get_saffron_grade_display }}</span>
@@ -51,10 +32,10 @@
               {% if img.image %}
                 <button
                   type="button"
-                  onclick="document.getElementById('main-product-image').src='{{ img.image.url }}'; document.getElementById('main-product-image').alt='{{ img.alt_text|escapejs }}';"
+                  onclick="document.getElementById('main-product-image').closest('picture').querySelectorAll('source').forEach(s=>s.remove()); document.getElementById('main-product-image').src='{{ img.image.url|escapejs }}'; document.getElementById('main-product-image').alt='{{ img.alt_text|escapejs }}';"
                   class="aspect-square rounded-xl border border-stone-200 overflow-hidden hover:border-rose-800"
                 >
-                  <img src="{{ img.image.url }}" alt="{{ img.alt_text }}" class="w-full h-full object-cover">
+                  <img src="{{ img.image.url }}" alt="{{ img.alt_text }}" width="120" height="120" loading="lazy" decoding="async" class="w-full h-full object-cover">
                 </button>
               {% endif %}
             {% endfor %}
@@ -211,7 +192,7 @@
                     value="{{ selected_variant.min_order_quantity }}"
                     min="{{ selected_variant.min_order_quantity }}"
                     max="{{ selected_variant.max_order_quantity }}"
-                    {% if not selected_variant.is_in_stock %}disabled{% endif %}
+                    {% if not selected_variant.is_in_stock or not checkout_available %}disabled{% endif %}
                     class="w-14 text-center text-sm font-bold border-x border-stone-200 py-2 focus:outline-none"
                   >
                   <button
@@ -225,10 +206,10 @@
                 <button
                   type="submit"
                   id="add-to-cart-submit-btn"
-                  {% if not selected_variant.is_in_stock %}disabled{% endif %}
+                  {% if not selected_variant.is_in_stock or not checkout_available %}disabled{% endif %}
                   class="flex-grow sm:flex-grow-0 px-8 py-3 rounded-xl bg-rose-900 hover:bg-rose-800 disabled:bg-stone-300 disabled:text-stone-600 text-white font-extrabold text-sm shadow-sm transition-colors"
                 >
-                  {% if selected_variant.is_in_stock %}افزودن به سبد خرید{% else %}ناموجود{% endif %}
+                  {% if not checkout_available %}آغاز فروش به‌زودی{% elif selected_variant.is_in_stock %}افزودن به سبد خرید{% else %}ناموجود{% endif %}
                 </button>
               </form>
             </div>
@@ -305,7 +286,7 @@
                   </div>
                   {% if cert.document_file %}
                     <a
-                      href="{{ cert.document_file.url }}"
+                      href="{{ cert.get_download_url }}"
                       target="_blank"
                       rel="noopener noreferrer"
                       class="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-amber-50 text-amber-900 border border-amber-200 hover:bg-amber-100"
@@ -376,5 +357,6 @@
       </section>
     {% endif %}
 
+    {% include "care/_reviews.html" %}
   </div>
 {% endblock %}

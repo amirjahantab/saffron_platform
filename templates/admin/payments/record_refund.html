@@ -1,0 +1,1 @@
+{% extends 'admin/base_site.html' %}{% block content %}<p>این فرم وجهی جابه‌جا نمی‌کند. فقط پس از انجام واقعی استرداد در بانک یا پنل پذیرنده، رسید بررسی‌شده را ثبت کنید. ثبت رسید تکراری پذیرفته نمی‌شود.</p><form method="post">{% csrf_token %}{{ form.as_p }}<input type="submit" value="ثبت رسید بررسی‌شده"></form>{% endblock %}
