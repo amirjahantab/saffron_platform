@@ -1,0 +1,53 @@
+name: verification
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: saffron_ci
+          POSTGRES_USER: saffron_ci
+          POSTGRES_PASSWORD: ephemeral-ci-only-password
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U saffron_ci -d saffron_ci"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:7.4-alpine
+        ports: ["6379:6379"]
+    env:
+      POSTGRES_DB: saffron_ci
+      POSTGRES_USER: saffron_ci
+      POSTGRES_PASSWORD: ephemeral-ci-only-password
+      POSTGRES_HOST: 127.0.0.1
+      POSTGRES_PORT: 5432
+      REDIS_URL: redis://127.0.0.1:6379/1
+      PYTHONUTF8: 1
+      PLAYWRIGHT_CHANNEL: chromium
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - uses: actions/setup-node@v4
+        with: {node-version: '22', cache: npm}
+      - run: python -m venv .venv
+      - run: .venv/bin/python -m pip install --upgrade pip
+      - run: .venv/bin/python -m pip install -r requirements/development.txt
+      - run: .venv/bin/python manage.py makemigrations --check --dry-run --settings=config.settings.test
+      - run: .venv/bin/python manage.py test apps --settings=config.settings.test --noinput
+      - run: USE_EXTERNAL_TEST_SERVICES=True .venv/bin/python manage.py test apps --settings=config.settings.test --noinput
+      - run: npm ci --ignore-scripts && npm run build:css
+      - run: npx playwright install --with-deps chromium
+      - run: .venv/bin/python manage.py migrate --noinput && .venv/bin/python manage.py seed_demo_catalog && .venv/bin/python manage.py seed_design_demo && .venv/bin/python manage.py optimize_catalog_images
+      - run: npm run test:browser
+      - run: .venv/bin/python -m pip_audit -r requirements/production.txt
+      - run: npm audit
+      - run: .venv/bin/python scripts/prepare_smoke.py
+      - run: docker compose --env-file .env.production -f compose.production.yml -f compose.smoke.yml up -d --build
+      - run: .venv/bin/python scripts/verify_smoke.py --restore
+      - if: always()
+        run: docker compose --env-file .env.production -f compose.production.yml -f compose.smoke.yml down --remove-orphans

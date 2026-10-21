@@ -17,7 +17,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Create a non-root user and group
-RUN groupadd -r appgroup && useradd -r -g appgroup -d /app -s /sbin/nologin appuser
+RUN groupadd -g 10001 appgroup && useradd -u 10001 -g appgroup -d /app -s /sbin/nologin appuser
 
 # Install Python dependencies
 COPY requirements/ /app/requirements/

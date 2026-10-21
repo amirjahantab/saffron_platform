@@ -204,6 +204,21 @@
       const selected = variants.find((v) => v.public_id === variantId);
       if (!selected) return;
 
+      const schemaEl = document.getElementById("seo-structured-data");
+      if (schemaEl) {
+        const schema = JSON.parse(schemaEl.textContent);
+        const product = schema["@graph"].find((entry) => entry["@type"] === "Product");
+        if (product && product.offers) {
+          product.sku = selected.sku;
+          product.offers.price = String(selected.effective_price_rial);
+          product.offers.availability = selected.is_in_stock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock";
+          const offerUrl = new URL(product.url);
+          offerUrl.searchParams.set("variant", selected.public_id);
+          product.offers.url = offerUrl.href;
+          schemaEl.textContent = JSON.stringify(schema).replace(/</g, "\\u003c");
+        }
+      }
+
       variantButtons.forEach((btn) => {
         const isCurrent = btn.getAttribute("data-variant-id") === variantId;
         btn.setAttribute("aria-pressed", isCurrent ? "true" : "false");
@@ -246,9 +261,10 @@
             Math.min(currentVal, selected.max_order_quantity)
           );
           qtyInput.value = String(clamped);
-          qtyInput.disabled = false;
-          addToCartBtn.disabled = false;
-          addToCartBtn.textContent = "افزودن به سبد خرید";
+          const checkoutEnabled = document.body.dataset.checkoutAvailable !== "false";
+          qtyInput.disabled = !checkoutEnabled;
+          addToCartBtn.disabled = !checkoutEnabled;
+          addToCartBtn.textContent = checkoutEnabled ? "افزودن به سبد خرید" : "آغاز فروش به‌زودی";
           stockBadgeEl.className = "inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200";
           stockBadgeEl.textContent = `موجود در انبار (${selected.stock_quantity_persian} عدد)`;
         } else {

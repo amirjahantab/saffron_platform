@@ -42,3 +42,9 @@ class UUIDModel(models.Model):
 
     class Meta:
         abstract = True
+
+
+class DemoDataset(models.Model):
+    """Persistent marker preventing an accidentally seeded database going live."""
+    name = models.CharField(max_length=50, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)

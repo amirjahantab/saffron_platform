@@ -205,4 +205,5 @@
     {% endif %}
 
   </div>
+{% if not request.user.is_authenticated and cart.items %}<div class="site-shell pb-10 text-center"><a class="button button-outline" href="{% url 'storefront:guest_checkout' %}">ادامه خرید بدون ساخت حساب</a></div>{% endif %}
 {% endblock %}

@@ -1,1 +1,0 @@
-"""Test suite for Storefront HTML pages, RTL templates, and real database pricing/stock display."""

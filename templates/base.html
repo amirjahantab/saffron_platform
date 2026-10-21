@@ -1,51 +1,31 @@
-{% load static saffron_tags %}
+{% load static saffron_tags seo_tags design_tags %}
+{% page_seo as seo %}
 <!DOCTYPE html>
 <html lang="fa" dir="rtl" class="font-sans">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% block title %}{{ page_title|default:"فروشگاه تخصصی زعفران جهانتاب" }}{% endblock %}</title>
-  <meta name="description" content="{% block meta_description %}خرید آنلاین زعفران سوپر نگین، نگین، سرگل، پوشال و دخترپیچ قائنات و خراسان همراه با برگه آزمایشگاهی ایزو ۳۶۳۲ و تضمین اصالت.{% endblock %}">
-
-  <!-- Shabnam Persian Font (Fast & Reliable jsDelivr CDN) -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/shabnam-font@v5.0.1/dist/font-face.css">
-
-  <!-- Tailwind CSS with Explicit Persian Font Configuration -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: {
-            sans: ['Shabnam', 'Tahoma', 'system-ui', 'sans-serif'],
-          }
-        }
-      }
-    };
-  </script>
-
+  <title>{% block title %}{{ page_title|default:"فروشگاه تخصصی زعفران جهانتاب" }}{% if page_obj.number > 1 %} | صفحه {{ page_obj.number }}{% endif %}{% endblock %}</title>
+  <meta name="description" content="{{ seo.description }}">
+  <meta name="robots" content="{{ seo.robots }}">
+  {% if seo.canonical %}<link rel="canonical" href="{{ seo.canonical }}">{% endif %}
+  {% if seo.structured_data %}<script id="seo-structured-data" type="application/ld+json">{{ seo.structured_data|json_ld }}</script>{% endif %}
+  <link rel="preload" href="{% static 'fonts/Vazirmatn-Variable.woff2' %}" as="font" type="font/woff2" crossorigin>
+  <link rel="icon" href="{% static 'images/brand-mark.svg' %}" type="image/svg+xml">
+  <link rel="stylesheet" href="{% static 'css/tailwind.css' %}">
   <link rel="stylesheet" href="{% static 'css/storefront.css' %}">
   {% block extra_head %}{% endblock %}
 </head>
-<body class="min-h-screen flex flex-col bg-stone-50 text-stone-900 font-sans antialiased">
+<body data-checkout-available="{{ checkout_available|yesno:'true,false' }}" class="min-h-screen flex flex-col bg-stone-50 text-stone-900 font-sans antialiased">
 
   <!-- Accessible Skip to Main Content Link -->
   <a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:right-3 focus:z-50 focus:bg-rose-900 focus:text-white focus:px-4 focus:py-2 focus:rounded-lg">
     پرش به محتوای اصلی
   </a>
 
-  <!-- Top Announcement Bar -->
-  <div class="bg-rose-950 text-amber-100 text-xs py-2.5 px-4 border-b border-rose-900">
-    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
-      <p class="font-medium">
-        ✨ عرضه مستقیم زعفران خالص خراسان همراه با گواهی آزمایشگاهی معتبر (ISO 3632-2) و کد رهگیری بچ برداشت
-      </p>
-      <p class="hidden sm:block text-amber-200">
-        ارسال رایگان سفارش‌های بالای {{ free_shipping_threshold_formatted }} به سراسر کشور
-      </p>
-    </div>
-  </div>
-
+  <div class="announcement"><div class="site-shell"><span>طلای سرخ خراسان، به انتخاب جهانتاب</span><span class="announcement-secondary">ارسال رایگان از {{ free_shipping_threshold_formatted }}</span></div></div>
+  {% if is_demo %}<div class="demo-notice">محیط نمایشی · محصولات و پرداخت این محیط برای آزمایش هستند</div>{% endif %}
+  {% if not is_demo and not checkout_available %}<div class="demo-notice">فروشگاه در حال آماده‌سازی است؛ ثبت سفارش هنوز آغاز نشده است.</div>{% endif %}
   <!-- Shared Navigation Header -->
   {% include "components/_navbar.html" %}
 
@@ -62,7 +42,7 @@
   </div>
 
   <!-- Main Page Content -->
-  <main id="main-content" class="flex-grow">
+  <main id="main-content" class="flex-grow min-w-0">
     {% block content %}{% endblock %}
   </main>
 
@@ -70,6 +50,7 @@
   {% include "components/_footer.html" %}
 
   <script src="{% static 'js/storefront.js' %}" defer></script>
+  <script type="module" src="{% static 'js/experience.js' %}"></script>
   {% block extra_js %}{% endblock %}
 </body>
 </html>

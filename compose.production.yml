@@ -1,0 +1,115 @@
+name: jahantab-production
+x-app: &app
+  image: ${APP_IMAGE:-jahantab-store:local}
+  build:
+    context: .
+    args: {ENVIRONMENT: production}
+  env_file: .env.production
+  environment:
+    DJANGO_SETTINGS_MODULE: config.settings.production
+    POSTGRES_HOST: db
+    POSTGRES_PORT: 5432
+    REDIS_URL: redis://:${REDIS_PASSWORD:?Set REDIS_PASSWORD}@redis:6379/1
+    TRUST_PROXY_HEADERS: "True"
+  user: "10001:10001"
+  read_only: true
+  tmpfs: ["/tmp:rw,noexec,nosuid,size=64m"]
+  security_opt: ["no-new-privileges:true"]
+  cap_drop: ["ALL"]
+  volumes: ["static_data:/app/staticfiles", "media_data:/app/media"]
+  depends_on:
+    db: {condition: service_healthy}
+    redis: {condition: service_healthy}
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-saffron_db}
+      POSTGRES_USER: ${POSTGRES_USER:-saffron_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+    volumes: ["postgres_data:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    environment: {REDIS_PASSWORD: "${REDIS_PASSWORD:?Set REDIS_PASSWORD}"}
+    command: ["sh", "-c", 'exec redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy noeviction --requirepass "$$REDIS_PASSWORD"']
+    volumes: ["redis_data:/data"]
+    healthcheck:
+      test: ["CMD-SHELL", 'REDISCLI_AUTH="$$REDIS_PASSWORD" redis-cli ping | grep -q PONG']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  release:
+    <<: *app
+    command: ["sh", "-c", "python manage.py migrate --noinput && python manage.py collectstatic --noinput && python manage.py check --deploy --fail-level WARNING"]
+    restart: "no"
+  web:
+    <<: *app
+    command: ["python", "deploy/start_web.py"]
+    restart: unless-stopped
+    depends_on:
+      db: {condition: service_healthy}
+      redis: {condition: service_healthy}
+      release: {condition: service_completed_successfully}
+    healthcheck:
+      test: ["CMD", "python", "deploy/health_probe.py"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+  worker:
+    <<: *app
+    command: ["python", "deploy/worker.py"]
+    restart: unless-stopped
+    depends_on:
+      web: {condition: service_healthy}
+  nginx:
+    image: nginxinc/nginx-unprivileged:1.30.6-alpine
+    restart: unless-stopped
+    ports: ["80:8080", "443:8443"]
+    environment: {SITE_URL: "${SITE_URL:?Set SITE_URL}", NGINX_ENVSUBST_FILTER: SITE_URL}
+    volumes:
+      - ./deploy/nginx/default.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ./deploy/certs:/etc/nginx/certs:ro
+      - static_data:/srv/static:ro
+      - media_data:/srv/media:ro
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+    depends_on:
+      web: {condition: service_healthy}
+  backup:
+    image: postgres:16-alpine
+    user: postgres
+    read_only: true
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=32m"]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+    profiles: ["operations"]
+    environment:
+      PGHOST: db
+      PGDATABASE: ${POSTGRES_DB:-saffron_db}
+      PGUSER: ${POSTGRES_USER:-saffron_user}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+    volumes: ["./backups:/backups", "media_data:/media:ro"]
+    entrypoint: ["sh", "/opt/backup.sh"]
+    command: []
+    depends_on:
+      db: {condition: service_healthy}
+    configs:
+      - source: backup_script
+        target: /opt/backup.sh
+
+configs:
+  backup_script: {file: ./deploy/backup.sh}
+volumes:
+  postgres_data:
+  redis_data:
+  static_data:
+  media_data:

@@ -1,0 +1,49 @@
+{
+  "scope": "localhost TLS smoke; not public deployment",
+  "http": [
+    {
+      "path": "/health/",
+      "status": 200,
+      "hsts": "max-age=31536000; includeSubDomains; preload"
+    },
+    {
+      "path": "/",
+      "status": 200,
+      "hsts": "max-age=31536000; includeSubDomains; preload"
+    },
+    {
+      "path": "/journal/",
+      "status": 200,
+      "hsts": "max-age=31536000; includeSubDomains; preload"
+    },
+    {
+      "path": "/faq/",
+      "status": 200,
+      "hsts": "max-age=31536000; includeSubDomains; preload"
+    },
+    {
+      "path": "/assistant/",
+      "status": 200,
+      "hsts": "max-age=31536000; includeSubDomains; preload"
+    },
+    {
+      "path": "/static/fonts/Vazirmatn-Variable.woff2",
+      "status": 200,
+      "hsts": "max-age=31536000; includeSubDomains"
+    }
+  ],
+  "raw_certificates_status": 404,
+  "app_identity": "uid=10001(appuser) gid=10001(appgroup) groups=10001(appgroup)",
+  "nginx_config": "passed",
+  "django_deploy_check": "passed",
+  "restore": {
+    "archive": "jahantab-20261018T192643Z.dump",
+    "target_database": "restore_drill_d69f7c1911",
+    "verified": {
+      "probe_rows": 1,
+      "migrations": 32
+    },
+    "checksum_created": true,
+    "media_probe_verified": true
+  }
+}

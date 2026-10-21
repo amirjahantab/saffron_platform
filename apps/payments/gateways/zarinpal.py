@@ -262,15 +262,7 @@ class ZarinpalV4Gateway(BasePaymentGateway):
                 is_succeeded=False,
                 failure_reason=str(_("شماره پیگیری بانکی برای ثبت بازگشت وجه الزامی است.")),
             )
-        refund_ref = f"ZP-REFUND-{reference_id}"
         return PaymentRefundResult(
-            is_succeeded=True,
-            provider_refund_id=refund_ref,
-            raw_response={
-                "status": "recorded",
-                "authority": authority,
-                "reference_id": reference_id,
-                "amount_rial": amount_rial,
-                "reason": reason,
-            },
+            is_succeeded=False,
+            failure_reason="استرداد خودکار برای این حساب پیکربندی نشده است. استرداد را در پنل پذیرنده انجام دهید و رسید بانکی معتبر را از مسیر تأیید دستی ثبت کنید.",
         )

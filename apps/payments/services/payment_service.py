@@ -47,9 +47,10 @@ class PaymentService:
         cls,
         *,
         order: Order,
-        user: User,
+        user: User | None,
         provider_code: str | None = None,
         idempotency_key: str | None = None,
+        guest_token: str | None = None,
     ) -> tuple[PaymentTransaction, str, bool]:
         """
         Initiate a payment gateway session for a `PENDING_PAYMENT` order owned by `user`.
@@ -61,7 +62,10 @@ class PaymentService:
         with transaction.atomic():
             locked_order = Order.objects.select_for_update().get(pk=order.pk)
 
-            if locked_order.user_id != user.pk:
+            from apps.orders.access import token_digest
+            from secrets import compare_digest
+            guest_allowed = locked_order.user_id is None and bool(guest_token) and compare_digest(token_digest(guest_token), locked_order.guest_access_hash)
+            if not guest_allowed and (user is None or locked_order.user_id != user.pk):
                 raise InvalidPaymentStateError(_("شما مجاز به پرداخت این سفارش نیستید."))
 
             if locked_order.status != Order.Status.PENDING_PAYMENT:
@@ -401,6 +405,7 @@ class PaymentService:
         reason: str,
         amount_rial: int | None = None,
         actor: User | None = None,
+        confirmed_bank_reference: str | None = None,
     ) -> PaymentRefund:
         """
         Execute a verified refund for a paid Order, record `PaymentRefund`,
@@ -454,13 +459,21 @@ class PaymentService:
                     _("مجموع مبلغ استرداد نمی‌تواند از مبلغ کل تراکنش پرداخت‌شده بیشتر باشد.")
                 )
 
-            gateway = get_payment_gateway(payment_tx.provider)
-            refund_res = gateway.refund_payment(
-                authority=payment_tx.authority or "",
-                reference_id=payment_tx.reference_id,
-                amount_rial=refund_amount,
-                reason=cleaned_reason,
-            )
+            if confirmed_bank_reference is not None:
+                from apps.payments.gateways.base import PaymentRefundResult
+                from apps.payments.models import BankRefundReceipt
+                if not actor or not actor.is_active or not actor.is_staff or not actor.has_perm("payments.change_paymentrefund"):
+                    raise PaymentError("اجازه ثبت رسید بانکی ندارید.")
+                receipt = BankRefundReceipt.objects.select_for_update().filter(reference=confirmed_bank_reference, operator=actor, refund__isnull=True).first()
+                if not receipt:
+                    raise PaymentError("رسید رزروشده استرداد یافت نشد.")
+                refund_res = PaymentRefundResult(is_succeeded=True, provider_refund_id=confirmed_bank_reference)
+            else:
+                gateway = get_payment_gateway(payment_tx.provider)
+                refund_res = gateway.refund_payment(
+                    authority=payment_tx.authority or "", reference_id=payment_tx.reference_id,
+                    amount_rial=refund_amount, reason=cleaned_reason,
+                )
             if not refund_res.is_succeeded:
                 raise PaymentError(
                     refund_res.failure_reason or str(_("خطا در ثبت بازگشت وجه در درگاه پرداخت.")),
@@ -480,21 +493,23 @@ class PaymentService:
             )
             refund_record.full_clean()
             refund_record.save()
+            if confirmed_bank_reference is not None:
+                receipt.refund = refund_record
+                receipt.save(update_fields=["refund", "updated_at"])
 
             # Restore committed inventory if the order was not yet shipped
-            if locked_order.status in (Order.Status.PAID, Order.Status.PROCESSING):
+            fully_refunded = already_refunded + refund_amount == int(payment_tx.amount_rial)
+            if fully_refunded and locked_order.status in (Order.Status.PAID, Order.Status.PROCESSING):
                 OrderStateAndReservationService._restore_committed_stock_on_post_payment_cancel(
                     locked_order
                 )
 
-            OrderStateAndReservationService.transition_order_status(
-                order=locked_order,
-                target_status=Order.Status.REFUNDED,
-                cancel_reason=cleaned_reason,
-            )
-
-            payment_tx.status = PaymentTransaction.Status.REFUNDED
-            payment_tx.save(update_fields=["status", "updated_at"])
+            if fully_refunded:
+                OrderStateAndReservationService.transition_order_status(
+                    order=locked_order, target_status=Order.Status.REFUNDED, cancel_reason=cleaned_reason,
+                )
+                payment_tx.status = PaymentTransaction.Status.REFUNDED
+                payment_tx.save(update_fields=["status", "updated_at"])
 
             logger.info(
                 "Order payment refunded: order=%s refund_id=%s amount_rial=%d",

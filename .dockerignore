@@ -11,6 +11,7 @@ env
 .env
 .env.*
 !.env.example
+!.env.production.example
 /media
 /staticfiles
 /logs/*.log
@@ -19,3 +20,11 @@ env
 htmlcov
 .vscode
 .idea
+node_modules
+*.log
+test-results
+playwright-report
+*-audit.json
+backups
+deploy/certs
+nginx-image-manifest.json

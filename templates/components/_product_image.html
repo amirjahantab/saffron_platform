@@ -1,0 +1,8 @@
+{% if image and image.image %}
+<picture>
+  {% if optimized_srcset %}<source type="image/webp" srcset="{{ optimized_srcset }}" sizes="{% if hero %}(min-width: 1024px) 480px, 90vw{% else %}(min-width: 1280px) 320px, (min-width: 640px) 45vw, 90vw{% endif %}">{% endif %}
+  <img {% if hero %}id="main-product-image" fetchpriority="high"{% else %}loading="lazy"{% endif %}
+       src="{{ image.image.url }}" alt="{{ image.alt_text }}" width="800" height="800" decoding="async"
+       class="w-full h-full object-cover {% if not hero %}group-hover:scale-105 transition-transform duration-300{% endif %}">
+</picture>
+{% endif %}

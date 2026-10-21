@@ -15,6 +15,9 @@ from typing import Any
 from PIL import Image, ImageDraw
 from django.core.files.base import ContentFile
 from django.core.management.base import BaseCommand
+from django.core.management.base import CommandError
+from django.conf import settings
+from apps.core.models import DemoDataset
 from django.db import transaction
 from apps.catalog.models import (
     HarvestBatch,
@@ -61,6 +64,12 @@ class Command(BaseCommand):
     help = "Seed the catalog with diverse saffron products, variants, batches, and lab certificates."
 
     def handle(self, *args: Any, **options: Any) -> None:
+        if not settings.DEMO_MODE:
+            raise CommandError("Demo catalog seeding is forbidden outside DEMO_MODE.")
+        from apps.orders.models import Order
+        if Order.objects.exists():
+            raise CommandError("Catalog demo seeding requires a database without orders; existing inventory is preserved.")
+        DemoDataset.objects.get_or_create(name="catalog")
         self.stdout.write("Seeding diverse Saffron catalog data...")
 
         with transaction.atomic():

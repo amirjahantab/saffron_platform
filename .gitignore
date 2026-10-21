@@ -32,3 +32,13 @@ htmlcov/
 .idea/
 .DS_Store
 Thumbs.db
+node_modules/
+test-results/
+playwright-report/
+*-audit.json
+/deploy/certs/*
+!/deploy/certs/.gitkeep
+/backups/
+nginx-image-manifest.json
+!.env.production.example
+tls-smoke-results.json

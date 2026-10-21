@@ -1,53 +1,6 @@
-<footer class="bg-stone-900 text-stone-300 border-t border-stone-800 mt-16">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
-
-      <!-- About Brand -->
-      <div class="md:col-span-2">
-        <h3 class="text-white font-extrabold text-lg mb-3">زعفران جهانتاب</h3>
-        <p class="text-sm text-stone-400 leading-relaxed max-w-xl">
-          مرجع تخصصی عرضه مستقیم زعفران سوپر نگین، نگین، سرگل، پوشال و دخترپیچ از مزارع منتخب خراسان.
-          تمامی محصولات با کد رهگیری سری تولید (Batch Code) و برگه آنالیز آزمایشگاهی معتبر (سنجش کروسین، سافرانال و پیکروکروسین) عرضه می‌شوند.
-        </p>
-        <p class="text-xs text-amber-400 mt-4 font-medium">
-          نشانی مرکز پخش: مشهد، مجتمع زعفران سی‌نور
-        </p>
-      </div>
-
-      <!-- Quick Catalog Links -->
-      <div>
-        <h4 class="text-white font-bold text-sm mb-3">انواع زعفران</h4>
-        <ul class="space-y-2 text-xs text-stone-400">
-          {% for grade in nav_saffron_grades %}
-            <li>
-              <a href="{% url 'storefront:product_list' %}?grade={{ grade.code }}" class="hover:text-amber-400 transition-colors">
-                خرید زعفران {{ grade.label }}
-              </a>
-            </li>
-          {% endfor %}
-          <li>
-            <a href="{% url 'storefront:product_list' %}?sale_type=wholesale" class="hover:text-amber-400 transition-colors">
-              سفارش عمده و سازمانی
-            </a>
-          </li>
-        </ul>
-      </div>
-
-      <!-- Customer Service -->
-      <div>
-        <h4 class="text-white font-bold text-sm mb-3">خدمات مشتریان</h4>
-        <ul class="space-y-2 text-xs text-stone-400">
-          <li><a href="{% url 'storefront:cart_page' %}" class="hover:text-amber-400 transition-colors">سبد خرید</a></li>
-          <li><a href="{% url 'storefront:account_orders' %}" class="hover:text-amber-400 transition-colors">پیگیری سفارش</a></li>
-          <li><span class="text-stone-500">واحد پول نمایشی: تومان (محاسبه دقیق ریالی در درگاه بانکی)</span></li>
-        </ul>
-      </div>
-
-    </div>
-
-    <div class="border-t border-stone-800 mt-8 pt-6 flex flex-wrap items-center justify-between text-xs text-stone-500">
-      <p>© تمامی حقوق برای فروشگاه تخصصی زعفران جهانتاب محفوظ است.</p>
-      <p>طراحی و مهندسی منطبق بر استانداردهای امنیت و اصالت آزمایشگاهی</p>
-    </div>
-  </div>
-</footer>
+{% load static design_tags %}
+<footer class="site-footer"><div class="site-shell"><div class="footer-main">
+<div class="footer-story"><a href="{% url 'storefront:home' %}" class="brand"><img src="{% static 'images/brand-mark.svg' %}" width="43" height="50" alt=""><span><strong>جهانتاب<span class="brand-dot">.</span></strong><small>عطر ماندگار یک سرزمین</small></span></a><p>برای لحظه‌هایی که رنگ و عطر اهمیت دارد.<br>زعفران را با آگاهی از نوع، خاستگاه و مشخصاتش انتخاب کنید.</p></div>
+<div><h2>کشف جهانتاب</h2><a href="{% url 'storefront:product_list' %}">همه محصولات</a><a href="{% url 'content:journal' %}">مجله و دانستنی‌ها</a><a href="{% url 'assistant:page' %}">راهنمای انتخاب</a></div>
+<div><h2>همراه شما</h2><a href="{% url 'storefront:account_orders' %}">پیگیری سفارش</a><a href="{% url 'care:inbox' %}">ارتباط با پشتیبانی</a><a href="{% url 'content:faq' %}">پرسش‌های متداول</a><a href="{% url 'insights:preferences' %}">ترجیحات حریم خصوصی</a></div>
+<div><h2>شفاف و روشن</h2>{% for page in public_policies %}<a href="{% url 'content:policy' slug=page.slug %}">{{ page.title }}</a>{% empty %}<p>اطلاعات تکمیلی فروشگاه پس از تأیید مدیر در این بخش منتشر می‌شود.</p>{% endfor %}</div></div><div class="footer-bottom"><span>© {% now 'Y' %} جهانتاب · با احترام به سلیقه شما</span><span>ساخته‌شده با دقت، برای انتخابی آگاهانه</span></div></div></footer>

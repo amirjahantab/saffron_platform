@@ -17,6 +17,10 @@ from django.contrib import messages
 from django.contrib.auth import login, logout
 from django.db import transaction
 from django.db.models import Prefetch, Q
+from django.core.paginator import InvalidPage, Paginator
+from django.db.models import Min, F
+from django.db.models.functions import Coalesce
+from django.http import Http404
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -73,6 +77,7 @@ from apps.payments.exceptions import (
 from apps.payments.models import PaymentProvider, PaymentTransaction
 from apps.payments.services.payment_service import PaymentService
 from apps.storefront.forms import UserProfileUpdateForm
+from apps.content.models import Article
 
 
 def _get_safe_redirect_url(request: HttpRequest, fallback_url_name: str = "storefront:home") -> str:
@@ -93,11 +98,8 @@ def _get_safe_redirect_url(request: HttpRequest, fallback_url_name: str = "store
 
 
 def _extract_client_ip(request: HttpRequest) -> str:
-    if getattr(settings, "USE_X_FORWARDED_HOST", False):
-        xff = request.META.get("HTTP_X_FORWARDED_FOR")
-        if xff:
-            return xff.split(",")[0].strip()
-    return request.META.get("REMOTE_ADDR") or "unknown"
+    from apps.core.client_ip import client_ip
+    return client_ip(request)
 
 
 def _build_active_variant_queryset() -> Any:
@@ -202,14 +204,14 @@ def home_page_view(request: HttpRequest) -> HttpResponse:
             Prefetch("variants", queryset=variant_qs, to_attr="active_variants"),
             Prefetch("images", queryset=image_qs, to_attr="ordered_images"),
         )
-        .order_by("-is_featured", "-created_at")[:8]
+        .order_by("-is_featured", "-created_at")[:4]
     )
 
     product_cards = _enrich_product_cards(list(featured_products_qs))
 
     grade_metadata = {
         SaffronGrade.SUPER_NEGIN: {
-            "subtitle": "بالاترین قدرت رنگ‌دهی (کروسین بالای ۲۶۰) و کلاله‌های تمام‌قرمز صادراتی",
+            "subtitle": "رشته‌های درشت و یکدست؛ انتخابی برای سلیقه‌های خاص",
             "badge": "ممتاز صادراتی",
         },
         SaffronGrade.NEGIN: {
@@ -218,10 +220,10 @@ def home_page_view(request: HttpRequest) -> HttpResponse:
         },
         SaffronGrade.SARGOL: {
             "subtitle": "سرگل خالص و معطر خراسان با رنگ‌دهی عالی برای آشپزی و زعفران‌دم‌کرده",
-            "badge": "پرفروش‌ترین",
+            "badge": "برای آشپزی",
         },
         SaffronGrade.PUSHAL: {
-            "subtitle": "کلاله قرمز به همراه بخش کوتاهی از خامه جهت اطمینان صددرصدی از اصالت سنتی",
+            "subtitle": "کلاله قرمز همراه بخش کوتاهی از خامه",
             "badge": "اصالت سنتی",
         },
         SaffronGrade.DOKHTAR_PICH: {
@@ -243,17 +245,20 @@ def home_page_view(request: HttpRequest) -> HttpResponse:
         )
 
     context = {
-        "page_title": "فروشگاه تخصصی زعفران جهانتاب | خرید مستقیم زعفران آزمایش‌شده با برگه اصالت",
+        "page_title": "فروشگاه تخصصی زعفران جهانتاب | مشخصات و خرید زعفران",
         "product_cards": product_cards,
         "grade_showcase": grade_showcase,
+        "journal_articles": Article.objects.published().select_related("category")[:3],
     }
     return render(request, "storefront/home.html", context)
 
 
 @require_GET
-def product_list_page_view(request: HttpRequest) -> HttpResponse:
+def product_list_page_view(request: HttpRequest, grade: str | None = None) -> HttpResponse:
     """Storefront Catalog & Category Filtering Page (`GET /shop/`)."""
-    selected_grade = request.GET.get("grade", "").strip()
+    if grade is not None and grade not in SaffronGrade.values:
+        raise Http404
+    selected_grade = grade or request.GET.get("grade", "").strip()
     selected_packaging = request.GET.get("packaging", "").strip()
     selected_sale_type = request.GET.get("sale_type", "").strip()
     search_query = request.GET.get("q", "").strip()
@@ -288,20 +293,30 @@ def product_list_page_view(request: HttpRequest) -> HttpResponse:
     else:
         products_qs = products_qs.order_by("-is_featured", "-created_at")
 
-    all_cards = _enrich_product_cards(list(products_qs))
-
+    eligible = Q(variants__is_active=True, variants__packaging_type__is_active=True,
+                 variants__harvest_batch__is_active=True)
+    if selected_packaging:
+        eligible &= Q(variants__packaging_type__slug=selected_packaging)
+    if selected_sale_type in SaleChannelType.values:
+        eligible &= Q(variants__sale_type=selected_sale_type)
     if selected_packaging or selected_sale_type:
-        all_cards = [c for c in all_cards if c["variants_count"] > 0]
-
-    if sort_by == "price_asc":
-        all_cards.sort(
-            key=lambda c: c["default_variant"].effective_price_rial if c["default_variant"] else 10**15
-        )
-    elif sort_by == "price_desc":
-        all_cards.sort(
-            key=lambda c: c["default_variant"].effective_price_rial if c["default_variant"] else -1,
-            reverse=True,
-        )
+        products_qs = products_qs.filter(eligible).distinct()
+    if sort_by in {"price_asc", "price_desc"}:
+        price = Coalesce("variants__discounted_price_rial", "variants__base_price_rial")
+        products_qs = products_qs.annotate(
+            available_price=Min(price, filter=eligible & Q(variants__stock_quantity__gte=F("variants__min_order_quantity"))),
+            any_price=Min(price, filter=eligible),
+        ).annotate(sort_price=Coalesce("available_price", "any_price"))
+        ordering = F("sort_price").asc(nulls_last=True) if sort_by == "price_asc" else F("sort_price").desc(nulls_last=True)
+        products_qs = products_qs.order_by(ordering, "pk")
+    else:
+        products_qs = products_qs.order_by(*products_qs.query.order_by, "pk")
+    paginator = Paginator(products_qs, 24)
+    try:
+        page_obj = paginator.page(request.GET.get("page", "1"))
+    except InvalidPage as exc:
+        raise Http404("Invalid catalog page") from exc
+    all_cards = _enrich_product_cards(list(page_obj.object_list))
 
     packaging_options = PackagingType.objects.filter(is_active=True).order_by("name")
     selected_grade_label = dict(SaffronGrade.choices).get(selected_grade, "")
@@ -313,7 +328,8 @@ def product_list_page_view(request: HttpRequest) -> HttpResponse:
             else "کاتالوگ محصولات زعفران | فروشگاه زعفران جهانتاب"
         ),
         "product_cards": all_cards,
-        "total_count": len(all_cards),
+        "total_count": paginator.count,
+        "page_obj": page_obj,
         "packaging_options": packaging_options,
         "sale_type_choices": SaleChannelType.choices,
         "selected_grade": selected_grade,
@@ -330,7 +346,7 @@ def product_list_page_view(request: HttpRequest) -> HttpResponse:
 def product_detail_page_view(request: HttpRequest, slug: str) -> HttpResponse:
     """Storefront Product Detail Page (`GET /shop/<slug>/`)."""
     verified_certs_qs = (
-        LabCertificate.objects.filter(is_verified=True)
+        LabCertificate.objects.filter(is_verified=True).filter(Q(expiry_date__isnull=True) | Q(expiry_date__gte=timezone.localdate()))
         .prefetch_related(
             Prefetch(
                 "metrics",
@@ -411,7 +427,7 @@ def product_detail_page_view(request: HttpRequest, slug: str) -> HttpResponse:
                     "issue_date": to_persian_digits(cert.issue_date.isoformat()),
                     "standard_reference": cert.standard_reference,
                     "quality_grade_result": cert.quality_grade_result,
-                    "document_url": cert.document_file.url if cert.document_file else "",
+                    "document_url": cert.get_download_url() if cert.document_file else "",
                     "metrics": metrics_list,
                 }
             )
@@ -467,6 +483,12 @@ def product_detail_page_view(request: HttpRequest, slug: str) -> HttpResponse:
         getattr(selected_batch, "verified_certificates", []) if selected_batch else []
     )
 
+    from apps.care.models import Review
+    from apps.care.forms import ReviewForm
+    from apps.orders.models import OrderItem
+    from django.db.models import Exists, OuterRef
+    purchases = OrderItem.objects.filter(order__user_id=OuterRef("user_id"), variant__product_id=OuterRef("product_id"), order__status__in=["paid", "processing", "shipped", "delivered"])
+
     context = {
         "page_title": f"{product.name} | مشخصات، آزمایشگاه و خرید آنلاین",
         "product": product,
@@ -478,6 +500,8 @@ def product_detail_page_view(request: HttpRequest, slug: str) -> HttpResponse:
         "selected_certificates": selected_certs,
         "variants_client_data": variants_client_data,
         "related_cards": related_cards,
+        "approved_reviews": Review.objects.filter(product=product, is_approved=True).annotate(is_verified_purchase=Exists(purchases))[:20],
+        "review_form": ReviewForm(),
     }
     return render(request, "storefront/product_detail.html", context)
 
@@ -770,6 +794,8 @@ def checkout_page_view(request: HttpRequest) -> HttpResponse:
                     customer_note=cleaned.get("customer_note") or "",
                     idempotency_key=cleaned.get("idempotency_key"),
                 )
+                from apps.insights.services import attach_order
+                attach_order(request, order)
                 messages.success(
                     request,
                     _("سفارش شماره %(num)s با موفقیت ثبت و موجودی کالا برای شما رزرو شد. اکنون می‌توانید پرداخت را انجام دهید.")
@@ -843,11 +869,16 @@ def sandbox_gateway_page_view(request: HttpRequest, authority: str) -> HttpRespo
     (`GET /payments/sandbox-gateway/<authority>/`).
     Allows testing both Successful (`Status=OK`) and Cancelled (`Status=NOK`) callbacks in the browser.
     """
+    if not settings.ALLOW_SANDBOX_PAYMENTS:
+        raise Http404
     tx = get_object_or_404(
         PaymentTransaction.objects.select_related("order"),
         provider=PaymentProvider.SANDBOX,
         authority=authority.strip(),
     )
+    from apps.orders.access import owns_order
+    if not owns_order(request, tx.order):
+        raise Http404
     context = {
         "page_title": "درگاه پرداخت آزمایشی شاپرک (Sandbox)",
         "tx": tx,
@@ -900,6 +931,14 @@ def payment_result_page_view(request: HttpRequest, provider: str) -> HttpRespons
                 .filter(provider=provider.strip().lower(), authority=authority)
                 .first()
             )
+
+    from apps.orders.access import owns_order
+    if tx and not owns_order(request, tx.order):
+        tx = None
+        is_success = False
+        error_message = "برای مشاهده رسید، به حساب صاحب سفارش وارد شوید یا از مرورگر ثبت سفارش استفاده کنید."
+    elif tx and tx.order.user_id is None:
+        return redirect("storefront:guest_order", order_number=tx.order.order_number)
 
     context = {
         "page_title": "نتیجه تراکنش بانکی | فروشگاه زعفران جهانتاب",

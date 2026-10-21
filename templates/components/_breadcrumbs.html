@@ -1,0 +1,9 @@
+{% if seo.breadcrumbs %}
+<nav aria-label="مسیر راهنما" class="text-xs text-stone-500 mb-6">
+  <ol class="flex flex-wrap items-center gap-2">
+  {% for crumb in seo.breadcrumbs %}
+    <li>{% if forloop.last %}<span aria-current="page">{{ crumb.name }}</span>{% else %}<a href="{{ crumb.path }}">{{ crumb.name }}</a><span aria-hidden="true"> / </span>{% endif %}</li>
+  {% endfor %}
+  </ol>
+</nav>
+{% endif %}

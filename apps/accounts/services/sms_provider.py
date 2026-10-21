@@ -4,6 +4,10 @@ Guarantees zero vendor lock-in and prevents plaintext OTP leakage in production 
 """
 from abc import ABC, abstractmethod
 import logging
+import json
+import re
+from urllib.request import Request, urlopen
+from urllib.parse import urlencode
 from django.conf import settings
 from django.utils.module_loading import import_string
 from apps.accounts.validators import mask_phone_number
@@ -23,6 +27,9 @@ class BaseSMSProvider(ABC):
     def send_otp(self, phone_number: str, code: str) -> bool:
         """Send an OTP code to the normalized Iranian phone number."""
 
+    def send_message(self, phone_number: str, message: str) -> bool:
+        raise SMSDeliveryError("This SMS provider does not implement notifications.")
+
 
 class SandboxSMSProvider(BaseSMSProvider):
     """
@@ -40,11 +47,13 @@ class SandboxSMSProvider(BaseSMSProvider):
         if getattr(settings, "OTP_SANDBOX_STORE_OUTBOX", False):
             self.__class__.outbox.append({"phone_number": phone_number, "code": code})
 
-        if settings.DEBUG:
-            logger.info("[SANDBOX SMS] OTP dispatched to %s | Code: %s", masked, code)
-        else:
-            logger.info("[SANDBOX SMS] OTP dispatched to %s (code hidden in non-debug mode)", masked)
+        logger.info("[SANDBOX SMS] OTP dispatched to %s (code hidden)", masked)
 
+        return True
+
+    def send_message(self, phone_number: str, message: str) -> bool:
+        if getattr(settings, "OTP_SANDBOX_STORE_OUTBOX", False):
+            self.__class__.outbox.append({"phone_number": phone_number, "message": message})
         return True
 
     @classmethod
@@ -65,3 +74,31 @@ def get_sms_provider() -> BaseSMSProvider:
     if not isinstance(provider, BaseSMSProvider):
         raise TypeError(f"Configured SMS_PROVIDER_CLASS '{provider_path}' must inherit from BaseSMSProvider.")
     return provider
+
+
+class KavenegarSMSProvider(BaseSMSProvider):
+    """Official HTTPS verify/lookup and sms/send REST endpoints; no secret logging."""
+
+    def _send(self, method, payload):
+        key = settings.KAVENEGAR_API_KEY
+        if not key or not re.fullmatch(r"[A-Za-z0-9]+", key):
+            raise SMSDeliveryError("SMS credentials are not configured.")
+        request = Request(f"https://api.kavenegar.com/v1/{key}/{method}.json", data=urlencode(payload).encode(), method="POST")
+        try:
+            with urlopen(request, timeout=10) as response:
+                result = json.loads(response.read(65536))
+            if result.get("return", {}).get("status") != 200:
+                raise SMSDeliveryError("SMS provider rejected the message.")
+            return True
+        except (OSError, ValueError) as exc:
+            raise SMSDeliveryError("SMS provider communication failed.") from None
+
+    def send_otp(self, phone_number, code):
+        if not settings.KAVENEGAR_OTP_TEMPLATE:
+            raise SMSDeliveryError("OTP template is not configured.")
+        return self._send("verify/lookup", {"receptor": phone_number, "token": code, "template": settings.KAVENEGAR_OTP_TEMPLATE, "type": "sms"})
+
+    def send_message(self, phone_number, message):
+        if not settings.KAVENEGAR_SENDER:
+            raise SMSDeliveryError("SMS sender is not configured.")
+        return self._send("sms/send", {"receptor": phone_number, "sender": settings.KAVENEGAR_SENDER, "message": message})

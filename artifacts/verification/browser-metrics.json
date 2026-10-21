@@ -1,0 +1,212 @@
+{
+  "desktop": {
+    "navigationMs": 226.59999999962747,
+    "resources": [
+      {
+        "url": "http://127.0.0.1:8766/static/fonts/Vazirmatn-Variable.woff2",
+        "bytes": 111152,
+        "durationMs": 10.800000000745058
+      },
+      {
+        "url": "http://127.0.0.1:8766/static/css/tailwind.css",
+        "bytes": 29585,
+        "durationMs": 17.799999999813735
+      },
+      {
+        "url": "http://127.0.0.1:8766/static/css/storefront.css",
+        "bytes": 25532,
+        "durationMs": 17.399999999441206
+      },
+      {
+        "url": "http://127.0.0.1:8766/static/images/brand-mark.svg",
+        "bytes": 366,
+        "durationMs": 23.200000000186265
+      },
+      {
+        "url": "http://127.0.0.1:8766/static/images/jahantab-editorial.webp",
+        "bytes": 233772,
+        "durationMs": 27.399999999441206
+      },
+      {
+        "url": "http://127.0.0.1:8766/static/js/experience.js",
+        "bytes": 2643,
+        "durationMs": 14.799999999813735
+      },
+      {
+        "url": "http://127.0.0.1:8766/static/js/storefront.js",
+        "bytes": 18554,
+        "durationMs": 22.09999999962747
+      },
+      {
+        "url": "http://127.0.0.1:8766/static/images/icons.svg#search",
+        "bytes": 1427,
+        "durationMs": 14.700000000186265
+      },
+      {
+        "url": "http://127.0.0.1:8766/media/catalog/optimized/cdeca779656688f132aa65b003fd3ca740232d11a37d4181ac2b253f39da7141-400.webp",
+        "bytes": 35196,
+        "durationMs": 7.7999999998137355
+      },
+      {
+        "url": "http://127.0.0.1:8766/media/catalog/optimized/75fec05f0088364bb3c62198f06d4bb653eb0228f11266568025d8e9742e659e-400.webp",
+        "bytes": 27894,
+        "durationMs": 8.099999999627471
+      },
+      {
+        "url": "http://127.0.0.1:8766/media/catalog/optimized/7ace51c27c21faeb5df1025b894e012899c4175d8cd944286cd8e8b1554440e1-400.webp",
+        "bytes": 35196,
+        "durationMs": 8.099999999627471
+      },
+      {
+        "url": "http://127.0.0.1:8766/media/catalog/optimized/d784285e68fefb80d9a3a2c959f17325ef9e59301e60c5c6bb7a9df070f7b017-400.webp",
+        "bytes": 27894,
+        "durationMs": 7.7999999998137355
+      },
+      {
+        "url": "http://127.0.0.1:8766/static/images/brand-mark.svg",
+        "bytes": 366,
+        "durationMs": 0.8000000007450581
+      }
+    ]
+  },
+  "mobile": {
+    "navigationMs": 204.20000000018626,
+    "resources": [
+      {
+        "url": "http://127.0.0.1:8766/static/fonts/Vazirmatn-Variable.woff2",
+        "bytes": 111152,
+        "durationMs": 10.200000000186265
+      },
+      {
+        "url": "http://127.0.0.1:8766/static/css/tailwind.css",
+        "bytes": 29585,
+        "durationMs": 17.200000000186265
+      },
+      {
+        "url": "http://127.0.0.1:8766/static/css/storefront.css",
+        "bytes": 25532,
+        "durationMs": 17.299999999813735
+      },
+      {
+        "url": "http://127.0.0.1:8766/static/images/brand-mark.svg",
+        "bytes": 366,
+        "durationMs": 23
+      },
+      {
+        "url": "http://127.0.0.1:8766/static/images/jahantab-editorial.webp",
+        "bytes": 233772,
+        "durationMs": 25.59999999962747
+      },
+      {
+        "url": "http://127.0.0.1:8766/static/js/storefront.js",
+        "bytes": 18554,
+        "durationMs": 23.200000000186265
+      },
+      {
+        "url": "http://127.0.0.1:8766/static/js/experience.js",
+        "bytes": 2643,
+        "durationMs": 18
+      },
+      {
+        "url": "http://127.0.0.1:8766/static/images/icons.svg#search",
+        "bytes": 1427,
+        "durationMs": 14.299999999813735
+      },
+      {
+        "url": "http://127.0.0.1:8766/media/catalog/optimized/75fec05f0088364bb3c62198f06d4bb653eb0228f11266568025d8e9742e659e-400.webp",
+        "bytes": 27894,
+        "durationMs": 6.900000000372529
+      },
+      {
+        "url": "http://127.0.0.1:8766/media/catalog/optimized/cdeca779656688f132aa65b003fd3ca740232d11a37d4181ac2b253f39da7141-400.webp",
+        "bytes": 35196,
+        "durationMs": 8
+      },
+      {
+        "url": "http://127.0.0.1:8766/media/catalog/optimized/d784285e68fefb80d9a3a2c959f17325ef9e59301e60c5c6bb7a9df070f7b017-400.webp",
+        "bytes": 27894,
+        "durationMs": 7
+      },
+      {
+        "url": "http://127.0.0.1:8766/media/catalog/optimized/7ace51c27c21faeb5df1025b894e012899c4175d8cd944286cd8e8b1554440e1-400.webp",
+        "bytes": 35196,
+        "durationMs": 7.1000000005587935
+      },
+      {
+        "url": "http://127.0.0.1:8766/static/images/brand-mark.svg",
+        "bytes": 366,
+        "durationMs": 0.5
+      }
+    ]
+  },
+  "mobile-small": {
+    "navigationMs": 322.5,
+    "resources": [
+      {
+        "url": "http://127.0.0.1:8766/static/fonts/Vazirmatn-Variable.woff2",
+        "bytes": 111152,
+        "durationMs": 13.799999999813735
+      },
+      {
+        "url": "http://127.0.0.1:8766/static/css/tailwind.css",
+        "bytes": 29585,
+        "durationMs": 21.399999999441206
+      },
+      {
+        "url": "http://127.0.0.1:8766/static/css/storefront.css",
+        "bytes": 25532,
+        "durationMs": 19
+      },
+      {
+        "url": "http://127.0.0.1:8766/static/images/brand-mark.svg",
+        "bytes": 366,
+        "durationMs": 25.699999999254942
+      },
+      {
+        "url": "http://127.0.0.1:8766/static/images/jahantab-editorial.webp",
+        "bytes": 233772,
+        "durationMs": 27.90000000037253
+      },
+      {
+        "url": "http://127.0.0.1:8766/static/js/storefront.js",
+        "bytes": 18554,
+        "durationMs": 25.799999999813735
+      },
+      {
+        "url": "http://127.0.0.1:8766/static/js/experience.js",
+        "bytes": 2643,
+        "durationMs": 20.5
+      },
+      {
+        "url": "http://127.0.0.1:8766/static/images/icons.svg#search",
+        "bytes": 1427,
+        "durationMs": 16.5
+      },
+      {
+        "url": "http://127.0.0.1:8766/static/images/brand-mark.svg",
+        "bytes": 366,
+        "durationMs": 1.2000000001862645
+      },
+      {
+        "url": "http://127.0.0.1:8766/media/catalog/optimized/cdeca779656688f132aa65b003fd3ca740232d11a37d4181ac2b253f39da7141-400.webp",
+        "bytes": 35196,
+        "durationMs": 6.400000000372529
+      },
+      {
+        "url": "http://127.0.0.1:8766/media/catalog/optimized/75fec05f0088364bb3c62198f06d4bb653eb0228f11266568025d8e9742e659e-400.webp",
+        "bytes": 27894,
+        "durationMs": 6.099999999627471
+      },
+      {
+        "url": "http://127.0.0.1:8766/media/catalog/optimized/7ace51c27c21faeb5df1025b894e012899c4175d8cd944286cd8e8b1554440e1-400.webp",
+        "bytes": 35196,
+        "durationMs": 6.2000000001862645
+      },
+      {
+        "url": "http://127.0.0.1:8766/media/catalog/optimized/d784285e68fefb80d9a3a2c959f17325ef9e59301e60c5c6bb7a9df070f7b017-400.webp",
+        "bytes": 27894,
+        "durationMs": 5.7000000001862645
+      }
+    ]
+  }
+}

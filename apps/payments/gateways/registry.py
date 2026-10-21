@@ -28,6 +28,8 @@ def get_payment_gateway(provider_code: str | None = None) -> BasePaymentGateway:
     ).strip().lower()
 
     gateway_cls = GATEWAY_REGISTRY.get(code)
+    if code == PaymentProvider.SANDBOX and not settings.ALLOW_SANDBOX_PAYMENTS:
+        raise PaymentConfigurationError("Sandbox payment is disabled in this environment.")
     if gateway_cls is None:
         raise PaymentConfigurationError(
             _("درگاه پرداخت درخواستی «%(provider)s» در سیستم تعریف نشده است.") % {"provider": code}

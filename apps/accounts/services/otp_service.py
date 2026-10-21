@@ -9,9 +9,12 @@ from dataclasses import dataclass
 from django.conf import settings
 from django.core.cache import cache
 from django.utils.translation import gettext_lazy as _
+from django.utils.crypto import salted_hmac
 from apps.accounts.services.sms_provider import SMSDeliveryError, get_sms_provider
 from apps.accounts.validators import mask_phone_number, normalize_iranian_phone, normalize_digits_to_ascii
 from apps.core.exceptions import SaffronBaseError
+from .otp_lock import otp_locks
+from redis.exceptions import LockError
 
 logger = logging.getLogger("django.security")
 
@@ -48,19 +51,19 @@ class OTPService:
 
     @staticmethod
     def _challenge_key(phone_number: str) -> str:
-        return f"otp:challenge:{phone_number}"
+        return "otp:challenge:" + salted_hmac("otp-phone", phone_number).hexdigest()
 
     @staticmethod
     def _cooldown_key(phone_number: str) -> str:
-        return f"otp:cooldown:{phone_number}"
+        return "otp:cooldown:" + salted_hmac("otp-phone", phone_number).hexdigest()
 
     @staticmethod
     def _phone_hourly_key(phone_number: str) -> str:
-        return f"otp:rl:phone:{phone_number}"
+        return "otp:rl:phone:" + salted_hmac("otp-phone", phone_number).hexdigest()
 
     @staticmethod
     def _ip_hourly_key(client_ip: str) -> str:
-        return f"otp:rl:ip:{client_ip}"
+        return "otp:rl:ip:" + salted_hmac("otp-ip", client_ip).hexdigest()
 
     @staticmethod
     def generate_secure_code(length: int | None = None) -> str:
@@ -102,6 +105,15 @@ class OTPService:
 
     @classmethod
     def request_otp(cls, raw_phone: str, client_ip: str = "unknown") -> OTPDispatchResult:
+        phone = normalize_iranian_phone(raw_phone)
+        try:
+            with otp_locks("phone:" + phone, "ip:" + client_ip):
+                return cls._request_otp_locked(phone, client_ip)
+        except LockError:
+            raise OTPRateLimitError("درخواست دیگری در حال پردازش است؛ دوباره تلاش کنید.", 5) from None
+
+    @classmethod
+    def _request_otp_locked(cls, raw_phone: str, client_ip: str = "unknown") -> OTPDispatchResult:
         """
         Validate phone number, enforce multi-layer rate limits, store hashed OTP in Redis,
         and dispatch the code via the configured SMS provider.
@@ -164,21 +176,23 @@ class OTPService:
             "expires_at": expires_at,
         }
 
-        # 5. Dispatch SMS first; only commit rate limits if SMS gateway accepts the message
+        # Admission is charged before the external call. Provider failures still consume
+        # an attempt, preventing retry storms or duplicated sends after a worker pause.
+        cache.set(cooldown_key, now_ts + cooldown_seconds, timeout=max(1, cooldown_seconds))
+        cls._increment_window_counter(phone_key, 3600)
+        cls._increment_window_counter(ip_key, 3600)
+        # Persist the challenge only after the provider accepted delivery.
         sms_provider = get_sms_provider()
         try:
             sent = sms_provider.send_otp(phone_number=phone_number, code=code)
             if not sent:
                 raise SMSDeliveryError("SMS provider returned unsuccessful status.")
         except Exception as exc:
-            logger.error("Failed to dispatch OTP SMS to %s: %s", masked_phone, exc)
+            logger.error("Failed to dispatch OTP SMS to %s", masked_phone)
             raise SMSDeliveryError(_("خطا در ارسال پیامک. لطفاً دقایقی دیگر تلاش کنید.")) from exc
 
         # 6. Persist challenge, cooldown, and increment hourly counters
         cache.set(cls._challenge_key(phone_number), challenge_payload, timeout=expiry_seconds)
-        cache.set(cooldown_key, now_ts + cooldown_seconds, timeout=cooldown_seconds)
-        cls._increment_window_counter(phone_key, 3600)
-        cls._increment_window_counter(ip_key, 3600)
 
         logger.info("OTP challenge created for phone=%s ip=%s", masked_phone, client_ip)
         return OTPDispatchResult(
@@ -189,6 +203,15 @@ class OTPService:
 
     @classmethod
     def verify_otp(cls, raw_phone: str, raw_code: str, client_ip: str = "unknown") -> str:
+        phone = normalize_iranian_phone(raw_phone)
+        try:
+            with otp_locks("phone:" + phone):
+                return cls._verify_otp_locked(phone, raw_code, client_ip)
+        except LockError:
+            raise OTPRateLimitError("درخواست دیگری در حال پردازش است؛ دوباره تلاش کنید.", 5) from None
+
+    @classmethod
+    def _verify_otp_locked(cls, raw_phone: str, raw_code: str, client_ip: str = "unknown") -> str:
         """
         Verify a submitted OTP code against the active Redis challenge.
         Enforces expiration, brute-force attempt caps, and single-use deletion.

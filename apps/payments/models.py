@@ -231,6 +231,17 @@ class PaymentTransaction(TimeStampedModel, UUIDModel):
             raise ValidationError(errors)
 
 
+class BankRefundReceipt(TimeStampedModel):
+    reference = models.CharField(max_length=128, unique=True)
+    operator = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    refund = models.OneToOneField("PaymentRefund", on_delete=models.PROTECT, null=True, blank=True)
+    evidence_note = models.TextField(max_length=1000)
+
+    class Meta:
+        verbose_name = "رسید استرداد بانکی"
+        verbose_name_plural = "رسیدهای استرداد بانکی"
+
+
 class PaymentRefund(TimeStampedModel, UUIDModel):
     """
     Audit and financial record for a payment refund (full or partial).

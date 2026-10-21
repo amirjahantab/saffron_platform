@@ -7,6 +7,8 @@ Designed for local engineering and debugging while maintaining baseline security
 from .base import *  # noqa: F401, F403
 
 DEBUG = get_env_bool("DJANGO_DEBUG", default=True)
+DEMO_MODE = get_env_bool("DEMO_MODE", default=True)
+ALLOW_SANDBOX_PAYMENTS = DEMO_MODE
 
 SECRET_KEY = get_env_variable(
     "DJANGO_SECRET_KEY",
